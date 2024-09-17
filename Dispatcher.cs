@@ -34,16 +34,16 @@ namespace InfernoDispatcher
         public ThreadSafeTaskWrapperNoResult Run(Action callback)
         {
                 ThreadSafeTaskWrapperNoResult task = new ThreadSafeTaskWrapperNoResult(callback);
-                Run(task);
+                Run(task, null);
                 return task;
         }
         public ThreadSafeTaskWrapperWithResult<T> Run<T>(Func<T> callback)
         {
             ThreadSafeTaskWrapperWithResult<T> task = new ThreadSafeTaskWrapperWithResult<T>(callback);
-            Run(task);
+            Run(task, null);
             return task;
         }
-        public void Run(ThreadSafeTaskWrapper task)
+        public void Run(ThreadSafeTaskWrapper task, object[]? arguments)
         {
             lock (_LockObject)
             {
@@ -52,13 +52,13 @@ namespace InfernoDispatcher
                     if (_MaxTaskQueueSize!=null&&(_TasksWaitingToBeRun.Count > (int)_MaxTaskQueueSize)) {
                         throw new Exception($"Maximum task queue size of {_MaxTaskQueueSize} exceeded");
                     }
-                    _TasksWaitingToBeRun.AddLast(task);
+                    _TasksWaitingToBeRun.AddLast(task, );
                     return;
                 }
-                SpinUpNewThread(task);
+                SpinUpNewThread(task, arguments);
             }
         }
-        private void SpinUpNewThread(ThreadSafeTaskWrapper? task) {
+        private void SpinUpNewThread(ThreadSafeTaskWrapper? task, object[]? arguments) {
             if (task == null) return;
             Thread? thread = null;
             thread = new Thread(() => {
@@ -66,7 +66,7 @@ namespace InfernoDispatcher
                 {
                     try
                     {
-                        task.Run();
+                        task.Run(arguments);
                     }
                     catch (Exception ex)
                     {

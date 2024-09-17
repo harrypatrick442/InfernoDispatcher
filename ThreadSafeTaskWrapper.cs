@@ -43,7 +43,7 @@ namespace InfernoDispatcher
                 return;
             }
         }
-        public abstract void Run();
+        public abstract void Run(object[]? arguments);
         public void Cancel() {
             Cancel(null);
         }
@@ -84,11 +84,12 @@ namespace InfernoDispatcher
                 }
             }
         }
+        protected abstract object[]? ResultAsRunArguments();
         protected void ExecuteOrScheduleTask(ThreadSafeTaskWrapper task)
         {
-
             Exception? exception;
             bool cancelled;
+            object[]? runArguments;
             lock (_LockObject)
             {
                 if (!_IsCompleted)
@@ -103,6 +104,7 @@ namespace InfernoDispatcher
                     }
                     return;
                 }
+                runArguments = ResultAsRunArguments();
                 exception = _Exception;
                 cancelled = _Cancelled;
             }
@@ -116,7 +118,7 @@ namespace InfernoDispatcher
                 task.Fail(exception);
                 return;
             }
-            Dispatcher.Instance.Run(task);
+            Dispatcher.Instance.Run(task, runArguments);
         }
         internal void Fail(Exception ex)
         {
@@ -142,7 +144,7 @@ namespace InfernoDispatcher
             {
                 foreach (var catcher in catches)
                 {
-                    catcher.Run();
+                    catcher.Run(new object[] { ex });
                 }
             }
         }
@@ -158,7 +160,14 @@ namespace InfernoDispatcher
         {
             System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(_Exception!).Throw();
         }
-
+        public ThreadSafeTaskWrapperVoidPromiseNoArguments Then(VoidPromise promise)
+        {
+            // Create a new ThreadSafeTaskWrapperNoResult that runs the callback after this task completes
+            ThreadSafeTaskWrapperVoidPromiseNoArguments task = new ThreadSafeTaskWrapperVoidPromiseNoArguments(
+                promise, this);
+            ExecuteOrScheduleTask(task);
+            return task;
+        }
         public ThreadSafeTaskWrapperNoResult Then(Action callback)
         {
             // Create a new ThreadSafeTaskWrapperNoResult that runs the callback after this task completes
@@ -280,7 +289,7 @@ namespace InfernoDispatcher
                     // If all tasks are done, run the final callback
                     if (doneCount == totalTasks)
                     {
-                        Dispatcher.Instance.Run(taskToReturn);
+                        Dispatcher.Instance.Run(taskToReturn, null);
                     }
                 }
             };
@@ -331,7 +340,7 @@ namespace InfernoDispatcher
                 catcher.CompleteCatcherWithoutException();
                 return catcher;
             }
-            Dispatcher.Instance.Run(catcher);
+            Dispatcher.Instance.Run(catcher, new object[] { exception });
             return catcher;
         }
         internal void CompleteCatcherWithoutException()
@@ -348,7 +357,7 @@ namespace InfernoDispatcher
             {
                 foreach (ThreadSafeTaskWrapper then in thens)
                 {
-                    Dispatcher.Instance.Run(then);
+                    Dispatcher.Instance.Run(then, );
                 }
             }
         }

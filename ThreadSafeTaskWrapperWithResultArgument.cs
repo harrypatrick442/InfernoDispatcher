@@ -1,9 +1,9 @@
 ﻿namespace InfernoDispatcher
 {
-    public class ThreadSafeTaskWrapperWithResult<TThisResult> : ThreadSafeTaskWrapperWithResultBase<TThisResult>
+    public class ThreadSafeTaskWrapperWithResultArgument<TArgument1, TThisResult> : ThreadSafeTaskWrapperWithResultBase<TThisResult>
     {
-        private readonly Func<TThisResult> _Callback;
-        internal ThreadSafeTaskWrapperWithResult(Func<TThisResult> callback, params ThreadSafeTaskWrapper[] froms)
+        private readonly Func<TArgument1, TThisResult> _Callback;
+        internal ThreadSafeTaskWrapperWithResultArgument(Func<TArgument1, TThisResult> callback, params ThreadSafeTaskWrapper[] froms)
             : base(froms)
         {
             _Callback = callback;
@@ -14,7 +14,7 @@
             try
             {
 
-                var result = _Callback();
+                var result = _Callback((TArgument1)arguments![0]);
                 Success(result);
             }
             catch (Exception ex)
