@@ -24,6 +24,7 @@
                 return;
             }
             List<ThreadSafeTaskWrapper>? thens;
+            List<ThreadSafeTaskWrapperNoResult>? catchs;
             lock (_LockObject)
             {
                 _Result = result;
@@ -31,6 +32,8 @@
                 _IsCompleted = true;
                 thens = _Thens;
                 _Thens = null;
+                catchs = _Catchs;
+                _Catchs = null;
                 _CountdownLatchWait?.Signal();
             }
             if (thens != null)
@@ -38,6 +41,13 @@
                 foreach (ThreadSafeTaskWrapper then in thens)
                 {
                     Dispatcher.Instance.Run(then);
+                }
+            }
+            if (catchs != null)
+            {
+                foreach (ThreadSafeTaskWrapperNoResult catcher in catchs)
+                {
+                    catcher.CompleteCatcherWithoutException();
                 }
             }
         }

@@ -1,4 +1,6 @@
-﻿namespace InfernoDispatcher
+﻿using System.Threading.Tasks;
+
+namespace InfernoDispatcher
 {
     public abstract class ThreadSafeTaskWrapper
     {
@@ -13,6 +15,7 @@
         }
         protected readonly object _LockObject = new object();
         protected List<ThreadSafeTaskWrapper>? _Thens;
+        protected List<ThreadSafeTaskWrapperNoResult>? _Catchs;
         protected bool _IsCompleted = false;
         protected Exception? _Exception;
         internal CountdownLatch? _CountdownLatchWait;
@@ -118,6 +121,7 @@
         internal void Fail(Exception ex)
         {
             List<ThreadSafeTaskWrapper>? thens;
+            List<ThreadSafeTaskWrapperNoResult>? catches;
             lock (_LockObject)
             {
                 if (_IsCompleted) return;
@@ -125,12 +129,21 @@
                 _IsCompleted = true;
                 thens = _Thens;
                 _Thens = null;
+                catches = _Catchs;
+                _Catchs = null;
                 _CountdownLatchWait?.Signal();
             }
             if (thens == null) return;
             foreach (ThreadSafeTaskWrapper then in thens)
             {
                 then.Fail(ex);
+            }
+            if (catches != null)
+            {
+                foreach (var catcher in catches)
+                {
+                    catcher.Run();
+                }
             }
         }
         protected void CheckNotAlreadyCompleted()
@@ -288,6 +301,56 @@
             });
 
             return taskToReturn;
+        }
+        public ThreadSafeTaskWrapperNoResult Catch(Action<Exception> callback) {
+            ThreadSafeTaskWrapperNoResult catcher = new ThreadSafeTaskWrapperNoResult(() => {
+                Exception ex;
+                lock (_LockObject) {
+                    ex = _Exception!;
+                }
+                callback(ex);
+            }, this);
+            Exception? exception;
+            bool cancelled;
+            lock (_LockObject) {
+                if (!_IsCompleted)
+                {
+                    _Catchs!.Add(catcher);
+                    return catcher;
+                }
+                exception = _Exception;
+                cancelled = _Cancelled;
+            }
+            if (cancelled)
+            {
+                catcher.Cancel();
+                return catcher;
+            }
+            if (exception == null)
+            {
+                catcher.CompleteCatcherWithoutException();
+                return catcher;
+            }
+            Dispatcher.Instance.Run(catcher);
+            return catcher;
+        }
+        internal void CompleteCatcherWithoutException()
+        {
+            List<ThreadSafeTaskWrapper>? thens;
+            lock (_LockObject)
+            {
+                _IsCompleted = true;
+                thens = _Thens;
+                _Thens = null;
+                _CountdownLatchWait?.Signal();
+            }
+            if (thens != null)
+            {
+                foreach (ThreadSafeTaskWrapper then in thens)
+                {
+                    Dispatcher.Instance.Run(then);
+                }
+            }
         }
     }
 }
