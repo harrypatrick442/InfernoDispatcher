@@ -25,6 +25,7 @@ namespace InfernoDispatcher
         private Dispatcher(int nDegreesParallelism, Action<Exception>? handleUncaughtException)
         {
             _HandleUncaughtException = handleUncaughtException;
+            _NDegreesParallelism = nDegreesParallelism;
             if (nDegreesParallelism <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(nDegreesParallelism), "Degrees of parallelism must be greater than zero.");
@@ -32,12 +33,9 @@ namespace InfernoDispatcher
         }
         public ThreadSafeTaskWrapperNoResult Run(Action callback)
         {
-            lock (_LockObject)
-            {
                 ThreadSafeTaskWrapperNoResult task = new ThreadSafeTaskWrapperNoResult(callback);
                 Run(task);
                 return task;
-            }
         }
         public ThreadSafeTaskWrapperWithResult<T> Run<T>(Func<T> callback)
         {
