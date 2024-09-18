@@ -47,20 +47,22 @@ namespace InfernoDispatcher
         {
             lock (_LockObject)
             {
+                task.Arguments = arguments;
                 if (_Threads.Count >= _NDegreesParallelism)
                 {
                     if (_MaxTaskQueueSize!=null&&(_TasksWaitingToBeRun.Count > (int)_MaxTaskQueueSize)) {
                         throw new Exception($"Maximum task queue size of {_MaxTaskQueueSize} exceeded");
                     }
-                    _TasksWaitingToBeRun.AddLast(task, );
+                    _TasksWaitingToBeRun.AddLast(task);
                     return;
                 }
-                SpinUpNewThread(task, arguments);
+                SpinUpNewThread(task);
             }
         }
-        private void SpinUpNewThread(ThreadSafeTaskWrapper? task, object[]? arguments) {
+        private void SpinUpNewThread(ThreadSafeTaskWrapper? task) {
             if (task == null) return;
             Thread? thread = null;
+            object[]? arguments = task.Arguments;
             thread = new Thread(() => {
                 if (!task.Cancelled)
                 {
@@ -82,6 +84,7 @@ namespace InfernoDispatcher
                         _Threads.Remove(thread!);
                         return;
                     }
+                    arguments = task.Arguments;
                 }
             });
             _Threads.Add(thread);

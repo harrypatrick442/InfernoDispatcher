@@ -1,4 +1,6 @@
-﻿namespace InfernoDispatcher
+﻿using static System.Runtime.InteropServices.JavaScript.JSType;
+
+namespace InfernoDispatcher
 {
     public class ThreadSafeTaskWrapperWithResult<TThisResult> : ThreadSafeTaskWrapperWithResultBase<TThisResult>
     {

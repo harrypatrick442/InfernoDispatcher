@@ -25,9 +25,5 @@
             }
         }
 
-        protected override object[]? ResultAsRunArguments()
-        {
-            return new object[] { _Result! };
-        }
     }
 }

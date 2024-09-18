@@ -8,32 +8,7 @@
         }
         protected void Success()
         {
-            List<ThreadSafeTaskWrapper>? thens;
-            List<ThreadSafeTaskWrapperNoResult>? catchs;
-            lock (_LockObject)
-            {
-                if (_IsCompleted) return;
-                _IsCompleted = true;
-                thens = _Thens;
-                _Thens = null;
-                catchs = _Catchs;
-                _Catchs = null;
-                _CountdownLatchWait?.Signal();
-            }
-            if (thens != null)
-            {
-                foreach (ThreadSafeTaskWrapper then in thens)
-                {
-                    Dispatcher.Instance.Run(then, null);
-                }
-            }
-            if (catchs != null)
-            {
-                foreach (ThreadSafeTaskWrapperNoResult catcher in catchs)
-                {
-                    catcher.CompleteCatcherWithoutException();
-                }
-            }
+            base.Success(null);
         }
         public void Wait()
         {
@@ -70,10 +45,6 @@
                     return;
                 }
             }
-        }
-        protected override object[]? ResultAsRunArguments()
-        {
-            return null;
         }
     }
 }

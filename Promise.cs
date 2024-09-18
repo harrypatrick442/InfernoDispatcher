@@ -54,4 +54,23 @@
             _Func(resolve, reject);
         }
     }
+    public class Promise
+    {
+        public static VoidPromise New(Action<Action, Action<Exception>> c)
+        {
+            return new VoidPromise(c);
+        }
+        public static VoidPromise<TArgument> New<TArgument>(Action<TArgument, Action, Action<Exception>> c)
+        {
+            return new VoidPromise<TArgument>(c);
+        }
+        public static Promise<TReturn> New<TReturn>(Action<Action<TReturn>, Action<Exception>> c)
+        {
+            return new Promise<TReturn>(c);
+        }
+        public static Promise<TArgument, TReturn> New<TArgument, TReturn>(Action<TArgument, Action<TReturn>, Action<Exception>> c)
+        {
+            return new Promise<TArgument, TReturn>(c);
+        }
+    }
 }

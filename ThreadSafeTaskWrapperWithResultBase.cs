@@ -2,7 +2,6 @@
 {
     public abstract class ThreadSafeTaskWrapperWithResultBase<TThisResult> : ThreadSafeTaskWrapper
     {
-        protected TThisResult? _Result;
         internal ThreadSafeTaskWrapperWithResultBase(params ThreadSafeTaskWrapper[] froms)
             : base(froms)
         {
@@ -10,66 +9,48 @@
         }
         protected void Success(TThisResult result)
         {
-            List<ThreadSafeTaskWrapper>? thens;
-            List<ThreadSafeTaskWrapperNoResult>? catchs;
-            object[]? resultAsRunArguments;
-            lock (_LockObject)
-            {
-                _Result = result;
-                if (_IsCompleted) return;
-                _IsCompleted = true;
-                resultAsRunArguments = ResultAsRunArguments();
-                thens = _Thens;
-                _Thens = null;
-                catchs = _Catchs;
-                _Catchs = null;
-                _CountdownLatchWait?.Signal();
-            }
-            if (thens != null)
-            {
-                foreach (ThreadSafeTaskWrapper then in thens)
-                {
-                    Dispatcher.Instance.Run(then, resultAsRunArguments);
-                }
-            }
-            if (catchs != null)
-            {
-                foreach (ThreadSafeTaskWrapperNoResult catcher in catchs)
-                {
-                    catcher.CompleteCatcherWithoutException();
-                }
-            }
+            Success(new object[] { result! });
         }
-        public ThreadSafeTaskWrapperNoResult Then(
+        public ThreadSafeTaskWrapperNoResultWithArgument<TThisResult> Then(
             Action<TThisResult> callback)
         {
-            ThreadSafeTaskWrapperNoResult task = new ThreadSafeTaskWrapperNoResult(
-                () => callback(CheckIsCompletedGetResultInLock()), this
+            return ExecuteOrScheduleTask(
+                new ThreadSafeTaskWrapperNoResultWithArgument<TThisResult>(callback, this)
             );
-            ExecuteOrScheduleTask(task);
-            return task;
         }
-        public ThreadSafeTaskWrapperWithResult<TNextResult> Then<TNextResult>(
+        public ThreadSafeTaskWrapperWithResultArgument<TThisResult, TNextResult> Then<TNextResult>(
             Func<TThisResult, TNextResult> callback)
         {
-            ThreadSafeTaskWrapperWithResult<TNextResult> task = new ThreadSafeTaskWrapperWithResult<TNextResult>(
-                () => callback(CheckIsCompletedGetResultInLock()), this
+            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperWithResultArgument<TThisResult, TNextResult>(
+                callback, this)
             );
-            ExecuteOrScheduleTask(task);
-            return task;
         }
-        public ThreadSafeTaskWrapperWithResult<TNextResult> Then<TNextResult>(
+        public ThreadSafeTaskWrapperPromiseNoArgument<TNextResult> Then<TNextResult>(Promise<TNextResult> promise)
+        {
+            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperPromiseNoArgument<TNextResult>(
+                promise, this));
+        }
+        public ThreadSafeTaskWrapperPromiseWithArgument<TThisResult, TNextResult> Then<TNextResult>(Promise<TThisResult, TNextResult> promise)
+        {
+            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperPromiseWithArgument<TThisResult, TNextResult>(
+                promise, this));
+        }
+        public ThreadSafeTaskWrapperWithResultBase<TNextResult> ThenCreateTask<TNextResult>(
+            Func<TThisResult, ThreadSafeTaskWrapperWithResult<TNextResult>> callback)
+        {
+            return ThenCreateTask((a=> (ThreadSafeTaskWrapperWithResultBase<TNextResult>)callback(a)));
+        }
+        public ThreadSafeTaskWrapperWithResultBase<TNextResult> ThenCreateTask<TNextResult>(
             Func<TThisResult, ThreadSafeTaskWrapperWithResultBase<TNextResult>> callback)
         {
-            TNextResult? result = default(TNextResult);
-            ThreadSafeTaskWrapperWithResult<TNextResult>? toReturn = null;
+            ThreadSafeTaskWrapperWithResultArgument<TNextResult, TNextResult>? toReturn = null;
             ThreadSafeTaskWrapperNoResult task = new ThreadSafeTaskWrapperNoResult(
                 () =>
                 {
                     try
                     {
                         var childTask = callback(CheckIsCompletedGetResultInLock());
-                        childTask.Then(toReturn!);
+                        childTask.ThenExistingTask(toReturn!);
                     }
                     catch (Exception ex)
                     {
@@ -78,7 +59,7 @@
 
                 }, this
             );
-            toReturn = new ThreadSafeTaskWrapperWithResult<TNextResult>(() => result!, task);
+            toReturn = new ThreadSafeTaskWrapperWithResultArgument<TNextResult, TNextResult>((r) => r!, task);
             ExecuteOrScheduleTask(task);
             return toReturn;
         }
@@ -265,7 +246,7 @@
                         ThrowException();
                         return default(TThisResult);
                     }
-                    return _Result!;
+                    return (TThisResult)_Result![0];
                 }
                 if (_CountdownLatchWait == null)
                 {
@@ -284,7 +265,7 @@
                     ThrowException();
                     return default(TThisResult);
                 }
-                return _Result!;
+                return (TThisResult)_Result![0];
             }
         }
         #endregion
@@ -294,12 +275,8 @@
             {
                 if (!_IsCompleted)
                     throw new InvalidOperationException("Task is not completed yet.");
-                return _Result!;
+                return (TThisResult)_Result![0];
             }
-        }
-        protected override object[]? ResultAsRunArguments()
-        {
-            return new object[] { _Result! };
         }
     }
 }
