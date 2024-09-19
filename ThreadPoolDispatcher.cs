@@ -1,7 +1,4 @@
-﻿using InfernoDispatcher.Exceptions;
-using System.Threading;
-
-namespace InfernoDispatcher
+﻿namespace InfernoDispatcher
 {
     public sealed class ThreadPoolDispatcher:DispatcherBase
     {
@@ -18,7 +15,6 @@ namespace InfernoDispatcher
                 ThreadPool.SetMaxThreads(maxWorkerThreads ?? _maxWorkerThreads, maxIOThreads ?? _maxIOThreads);
             }
         }
-
         protected override void Run(InfernoTask task, object[]? arguments)
         {
             ThreadPool.QueueUserWorkItem(_ =>

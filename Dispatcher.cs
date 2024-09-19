@@ -5,30 +5,29 @@ namespace InfernoDispatcher
     public sealed class Dispatcher
     {
         private static DispatcherBase? _Instance;
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="handleUncaughtException"></param>
-        /// <param name="infernoElseNativeThreadPool"></param>
-        /// <param name="nDegreesParallelism"></param>
-        /// <param name="maxIOThreads">Only applies if using native</param>
-        /// <returns></returns>
-        /// <exception cref="AlreadyInitializedException"></exception>
-        public static DispatcherBase Initialize(
+        public static DispatcherBase InitializeWithInferno(
             Action<Exception>? handleUncaughtException,
-            bool infernoElseNativeThreadPool = true,
-            int ? nDegreesParallelism = null,
-            int? maxIOThreads= null) {
+                int ? nDegreesParallelism = null,
+                int? maxTaskQueueSize = null
+            ) {
             if (_Instance != null) throw new AlreadyInitializedException(nameof(Dispatcher));
-            _Instance = infernoElseNativeThreadPool
-                ?new InfernoDispatcher(
-                    nDegreesParallelism?? Environment.ProcessorCount,
+            _Instance = new InfernoDispatcher(
+                    nDegreesParallelism ?? Environment.ProcessorCount,
+                    maxTaskQueueSize,
                     handleUncaughtException
-                )
-                :new ThreadPoolDispatcher
+                );
+            return _Instance;
+        }
+        public static DispatcherBase InitializeWithNative(
+            Action<Exception>? handleUncaughtException,
+            int? nDegreesParallelism = null,
+            int? maxIOThreads = null)
+        {
+            if (_Instance != null) throw new AlreadyInitializedException(nameof(Dispatcher));
+            _Instance = new ThreadPoolDispatcher
                 (
-                    handleUncaughtException, 
-                    nDegreesParallelism, 
+                    handleUncaughtException,
+                    nDegreesParallelism,
                     maxIOThreads
                 );
             return _Instance;

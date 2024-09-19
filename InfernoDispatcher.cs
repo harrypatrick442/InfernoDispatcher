@@ -1,6 +1,4 @@
-﻿using InfernoDispatcher.Exceptions;
-
-namespace InfernoDispatcher
+﻿namespace InfernoDispatcher
 {
     public sealed class InfernoDispatcher : DispatcherBase
     {
@@ -10,10 +8,11 @@ namespace InfernoDispatcher
         private readonly HashSet<Thread> _Threads = new HashSet<Thread>();
         private readonly LinkedList<InfernoTask> _TasksWaitingToBeRun = new LinkedList<InfernoTask>();
         internal InfernoDispatcher(
-            int nDegreesParallelism, Action<Exception>? handleUncaughtException
+            int nDegreesParallelism, int? maxTaskQueueSize, Action<Exception>? handleUncaughtException
             ):base(handleUncaughtException)
         {
             _NDegreesParallelism = nDegreesParallelism;
+            _MaxTaskQueueSize = maxTaskQueueSize;
             if (nDegreesParallelism <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(nDegreesParallelism), "Degrees of parallelism must be greater than zero.");

@@ -1,6 +1,4 @@
-﻿using InfernoDispatcher.Exceptions;
-
-namespace InfernoDispatcher
+﻿namespace InfernoDispatcher
 {
     public abstract class DispatcherBase
     {
