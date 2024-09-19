@@ -54,7 +54,7 @@
             _Func(resolve, reject);
         }
     }
-    public class Promise
+    public static class Promise
     {
         public static PromiseVoid New(Action<Action, Action<Exception>> c)
         {

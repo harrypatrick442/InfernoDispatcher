@@ -1,4 +1,6 @@
-﻿namespace InfernoDispatcher
+﻿using System.Threading.Tasks;
+
+namespace InfernoDispatcher
 {
     public abstract class InfernoTaskWithResultBase<TThisResult> : InfernoTask
     {
@@ -11,6 +13,7 @@
         {
             Success(new object[] { result! });
         }
+        #region Then
         public InfernoTaskNoResultWithArgument<TThisResult> Then(
             Action<TThisResult> callback)
         {
@@ -18,18 +21,12 @@
                 new InfernoTaskNoResultWithArgument<TThisResult>(callback, this)
             );
         }
-        public InfernoTaskWithResultArgument<TThisResult, TNextResult> Then<TNextResult>(
+        public InfernoTaskWithResultArgument<TThisResult,TNextResult> Then<TNextResult>(
             Func<TThisResult, TNextResult> callback)
         {
             return ExecuteOrScheduleTask(new InfernoTaskWithResultArgument<TThisResult, TNextResult>(
                 callback, this)
             );
-        }
-        public InfernoTaskPromiseNoArgument<TNextResult> Then<TNextResult>(
-            Promise<TNextResult> promise)
-        {
-            return ExecuteOrScheduleTask(new InfernoTaskPromiseNoArgument<TNextResult>(
-                promise, this));
         }
         public InfernoTaskPromiseReturnWithArgument<TThisResult, TNextResult> Then<TNextResult>(
             Func<TThisResult, Promise<TNextResult>> promise)
@@ -37,17 +34,20 @@
             return ExecuteOrScheduleTask(new InfernoTaskPromiseReturnWithArgument<TThisResult, TNextResult>(
                 promise, this));
         }
-        public InfernoTaskVoidPromiseReturn<TThisResult> Then<TNextResult>(
+        public InfernoTaskVoidPromiseReturnWithArgument<TThisResult> Then<TNextResult>(
             Func<TThisResult, PromiseVoid> promise)
         {
-            return ExecuteOrScheduleTask(new InfernoTaskVoidPromiseReturn<TThisResult>(
+            return ExecuteOrScheduleTask(new InfernoTaskVoidPromiseReturnWithArgument<TThisResult>(
                 promise, this));
         }
-        public InfernoTaskPromiseWithArgument<TThisResult, TNextResult> Then<TNextResult>(PromiseParametrized<TThisResult, TNextResult> promise)
+        public InfernoTaskPromiseWithArgument<TThisResult, TNextResult> Then<TNextResult>(
+            PromiseParametrized<TThisResult, TNextResult> promise)
         {
             return ExecuteOrScheduleTask(new InfernoTaskPromiseWithArgument<TThisResult, TNextResult>(
                 promise, this));
         }
+        #endregion
+        #region ThenCreateTask
         public InfernoTaskWithResultBase<TNextResult> ThenCreateTask<TNextResult>(
             Func<TThisResult, InfernoTaskWithResult<TNextResult>> callback)
         {
@@ -57,12 +57,12 @@
             Func<TThisResult, InfernoTaskWithResultBase<TNextResult>> callback)
         {
             InfernoTaskWithResultArgument<TNextResult, TNextResult>? toReturn = null;
-            InfernoTaskNoResult task = new InfernoTaskNoResult(
-                () =>
+            InfernoTaskNoResultWithArgument<TThisResult> task = new InfernoTaskNoResultWithArgument<TThisResult>(
+                (result) =>
                 {
                     try
                     {
-                        var childTask = callback(CheckIsCompletedGetResultInLock());
+                        var childTask = callback(result);
                         childTask.ThenExistingTask(toReturn!);
                     }
                     catch (Exception ex)
@@ -76,6 +76,7 @@
             ExecuteOrScheduleTask(task);
             return toReturn;
         }
+        #endregion
         #region Task Joining
         public InfernoTaskWithResultTwoArguments<TThisResult, TOtherResult, TNextResult> Join<TOtherResult, TNextResult>(
             InfernoTaskWithResultBase<TOtherResult> other,
@@ -243,6 +244,48 @@
 
 
         #endregion
+        #region Delay
+
+        public InfernoTaskNoResultWithArgument<TThisResult> Delay(
+            int millisecondsDelay,
+            Action<TThisResult> callback)
+        {
+            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) => {
+                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve(a));
+            })).Then(callback);
+        }
+        public InfernoTaskWithResultArgument<TThisResult, TNextResult> Delay<TNextResult>(
+            int millisecondsDelay,
+            Func<TThisResult, TNextResult> callback)
+        {
+            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) => {
+                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve(a));
+            })).Then(callback);
+        }
+        public InfernoTaskPromiseReturnWithArgument<TThisResult, TNextResult> Delay<TNextResult>(
+            int millisecondsDelay,
+            Func<TThisResult, Promise<TNextResult>> promise)
+        {
+            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) => {
+                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve(a));
+            })).Then(promise);
+        }
+        public InfernoTaskVoidPromiseReturnWithArgument<TThisResult> Delay<TNextResult>(
+            int millisecondsDelay,
+            Func<TThisResult, PromiseVoid> func)
+        {
+            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) => {
+                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve(a));
+            })).Then<TThisResult>(func);
+        }
+        public InfernoTaskPromiseWithArgument<TThisResult, TNextResult> Delay<TNextResult>(
+            int millisecondsDelay, PromiseParametrized<TThisResult, TNextResult> promise)
+        {
+            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) => {
+                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve(a));
+            })).Then(promise);
+        }
+        #endregion
         #region Wait
         public TThisResult? Wait()
         {
@@ -282,14 +325,5 @@
             }
         }
         #endregion
-        private TThisResult CheckIsCompletedGetResultInLock()
-        {
-            lock (_LockObject)
-            {
-                if (!_IsCompleted)
-                    throw new InvalidOperationException("Task is not completed yet.");
-                return (TThisResult)_Result![0];
-            }
-        }
     }
 }

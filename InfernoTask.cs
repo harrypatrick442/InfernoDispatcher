@@ -1,4 +1,6 @@
-﻿namespace InfernoDispatcher
+﻿using System.Threading.Tasks;
+
+namespace InfernoDispatcher
 {
     public abstract class InfernoTask
     {
@@ -193,6 +195,7 @@
         {
             System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(_Exception!).Throw();
         }
+        #region Then
         public InfernoTaskVoidPromiseNoArguments Then(PromiseVoid promise)
         {
             // Create a new InfernoTaskNoResult that runs the callback after this task completes
@@ -200,6 +203,12 @@
                 promise, this);
             ExecuteOrScheduleTask(task);
             return task;
+        }
+        public InfernoTaskPromiseNoArgument<TNextResult> Then<TNextResult>(
+            Promise<TNextResult> promise)
+        {
+            return ExecuteOrScheduleTask(new InfernoTaskPromiseNoArgument<TNextResult>(
+                promise, this));
         }
         public InfernoTaskNoResult Then(Action callback)
         {
@@ -224,6 +233,12 @@
             ExecuteOrScheduleTask(task);
             return task;
         }
+        public InfernoTaskVoidPromiseReturnNoArgument Then(
+            Func<PromiseVoid> promise)
+        {
+            return ExecuteOrScheduleTask(new InfernoTaskVoidPromiseReturnNoArgument(
+                promise, this));
+        }
 
         public InfernoTaskWithResult<TNextResult> Then<TNextResult>(InfernoTaskWithResult<TNextResult> task)
         {
@@ -238,12 +253,7 @@
             return ExecuteOrScheduleTask(new InfernoTaskPromiseReturnNoArgument<TNextResult>(
                 promise, this));
         }
-        public InfernoTaskVoidPromiseReturnNoArgument Then<TNextResult>(
-            Func<PromiseVoid> promise)
-        {
-            return ExecuteOrScheduleTask(new InfernoTaskVoidPromiseReturnNoArgument(
-                promise, this));
-        }
+        #endregion
         internal InfernoTaskWithResultBase<TNextResult> ThenExistingTask<TNextResult>(
             InfernoTaskWithResultArgument<TNextResult, TNextResult> task)
         {
@@ -252,7 +262,6 @@
             ExecuteOrScheduleTask(task, noRunCosAlreadyRun:true);
             return task;
         }
-
         public InfernoTaskNoResult ThenCreateTask(Func<InfernoTaskNoResult> callback)
         {
             InfernoTaskNoResult? toReturn = null;
@@ -299,6 +308,7 @@
             ExecuteOrScheduleTask(task);
             return toReturn;
         }
+        #region Join
         public InfernoTaskNoResult Join(InfernoTaskNoResult other, Action callback)
         {
             return Join(callback, other);
@@ -359,6 +369,8 @@
 
             return taskToReturn;
         }
+        #endregion
+        #region Catch
         public InfernoTaskNoResult Catch(Action<Exception> callback) {
             InfernoTaskNoResult catcher = new InfernoTaskNoResult(() => {
                 Exception ex;
@@ -393,6 +405,7 @@
             Dispatcher.Instance.Run(catcher, new object[] { exception });
             return catcher;
         }
+        #endregion
         internal void CompleteCatcherWithoutException(object[]? arguments)
         {
             List<InfernoTask>? thens;
@@ -411,5 +424,64 @@
                 }
             }
         }
+        #region Delay
+        public InfernoTaskVoidPromiseNoArguments Delay(int millisecondsDelay, PromiseVoid promise)
+        {
+            return Then(new PromiseVoid((resolve, reject) => {
+                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
+            })).Then(promise);
+        }
+        public InfernoTaskPromiseNoArgument<TNextResult> Delay<TNextResult>(
+            int millisecondsDelay,
+            Promise<TNextResult> promise)
+        {
+            return Then(new PromiseVoid((resolve, reject) => {
+                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
+            })).Then<TNextResult>(promise);
+        }
+        public InfernoTaskNoResult Delay(int millisecondsDelay, Action callback)
+        {
+            return Then(new PromiseVoid((resolve, reject) => {
+                Task.Delay((int)millisecondsDelay).ContinueWith((ignore)=>resolve());
+            })).Then(callback);
+        }
+
+        public InfernoTaskNoResult Delay(int millisecondsDelay, InfernoTaskNoResult task)
+        {
+            return Then(new PromiseVoid((resolve, reject) => {
+                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
+            })).Then(task);
+        }
+
+        public InfernoTaskWithResult<TNextResult> Delay<TNextResult>(int millisecondsDelay, Func<TNextResult> callback)
+        {
+            return Then(new PromiseVoid((resolve, reject) => {
+                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
+            })).Then(callback);
+        }
+
+        public InfernoTaskWithResult<TNextResult> Delay<TNextResult>(int millisecondsDelay, InfernoTaskWithResult<TNextResult> task)
+        {
+            return Then(new PromiseVoid((resolve, reject) => {
+                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
+            })).Then(task);
+        }
+        public InfernoTaskPromiseReturnNoArgument<TNextResult> Delay<TNextResult>(
+            int millisecondsDelay,
+            Func<Promise<TNextResult>> promise)
+        {
+            return Then(new PromiseVoid((resolve, reject) => {
+                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
+            })).Then(promise);
+        }
+        public InfernoTaskVoidPromiseReturnNoArgument Delay<TNextResult>(
+            int millisecondsDelay,
+            Func<PromiseVoid> func)
+        {
+            return Then(new PromiseVoid((resolve, reject) => {
+                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
+            })).Then(func);
+        }
+        #endregion
     }
 }
