@@ -325,5 +325,18 @@ namespace InfernoDispatcher
             }
         }
         #endregion
+        #region Awaitable methods
+        public virtual TThisResult GetResult()
+        {
+            lock (_LockObject)
+            {
+                if (_Exception != null)
+                {
+                    ThrowException();
+                }
+                return (TThisResult)_Result![0];
+            }
+        }
+        #endregion
     }
 }

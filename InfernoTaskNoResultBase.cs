@@ -46,5 +46,16 @@
                 }
             }
         }
+        #region Awaitable methods
+        public virtual void GetResult()
+        {
+            lock (_LockObject) {
+                if (_Exception != null)
+                {
+                    ThrowException();
+                }
+            }
+        }
+        #endregion
     }
 }

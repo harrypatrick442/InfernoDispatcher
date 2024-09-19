@@ -15,7 +15,7 @@
                 ThreadPool.SetMaxThreads(maxWorkerThreads ?? _maxWorkerThreads, maxIOThreads ?? _maxIOThreads);
             }
         }
-        protected override void Run(InfernoTask task, object[]? arguments)
+        public override void Run(InfernoTask task, object[]? arguments)
         {
             ThreadPool.QueueUserWorkItem(_ =>
             {

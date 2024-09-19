@@ -18,7 +18,7 @@
                 throw new ArgumentOutOfRangeException(nameof(nDegreesParallelism), "Degrees of parallelism must be greater than zero.");
             }
         }
-        protected override void Run(InfernoTask task, object[]? arguments)
+        public override void Run(InfernoTask task, object[]? arguments)
         {
             lock (_LockObject)
             {

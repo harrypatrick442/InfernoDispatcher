@@ -1,8 +1,8 @@
 ﻿using System.Threading.Tasks;
-
+using System.Runtime.CompilerServices;
 namespace InfernoDispatcher
 {
-    public abstract class InfernoTask
+    public abstract class InfernoTask : INotifyCompletion
     {
         protected bool _Cancelled;
         public bool Cancelled {
@@ -19,6 +19,11 @@ namespace InfernoDispatcher
         protected List<InfernoTask>? _Thens;
         protected List<InfernoTaskNoResult>? _Catchs;
         protected bool _IsCompleted = false;
+        public bool IsCompleted { get {
+                lock (_LockObject) {
+                    return _IsCompleted;
+                }
+            } }
         protected Exception? _Exception;
         internal CountdownLatch? _CountdownLatchWait;
         private InfernoTask[] _Froms;
@@ -481,6 +486,12 @@ namespace InfernoDispatcher
             return Then(new PromiseVoid((resolve, reject) => {
                 Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
             })).Then(func);
+        }
+        #endregion
+        #region Awaitable methods
+        public void OnCompleted(Action continuation)
+        {
+            Then(continuation);
         }
         #endregion
     }

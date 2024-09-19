@@ -19,6 +19,6 @@
             Run(task, null);
             return task;
         }
-        protected abstract void Run(InfernoTask task, object[]? arguments);
+        public abstract void Run(InfernoTask task, object[]? arguments);
     }
 }
