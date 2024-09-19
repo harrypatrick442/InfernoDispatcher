@@ -49,10 +49,16 @@
         #region Awaitable methods
         public virtual void GetResult()
         {
-            lock (_LockObject) {
+            lock (_LockObject)
+            {
+                if (_Cancelled)
+                {
+                    throw new OperationCanceledException();
+                }
                 if (_Exception != null)
                 {
                     ThrowException();
+                    return;
                 }
             }
         }

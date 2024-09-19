@@ -330,9 +330,14 @@ namespace InfernoDispatcher
         {
             lock (_LockObject)
             {
+                if (_Cancelled)
+                {
+                    throw new OperationCanceledException();
+                }
                 if (_Exception != null)
                 {
                     ThrowException();
+                    return default(TThisResult);
                 }
                 return (TThisResult)_Result![0];
             }

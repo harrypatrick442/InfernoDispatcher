@@ -492,6 +492,7 @@ namespace InfernoDispatcher
         public void OnCompleted(Action continuation)
         {
             Then(continuation);
+            Catch((ex) =>continuation());
         }
         #endregion
     }
