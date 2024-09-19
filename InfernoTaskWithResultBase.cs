@@ -1,8 +1,8 @@
 ﻿namespace InfernoDispatcher
 {
-    public abstract class ThreadSafeTaskWrapperWithResultBase<TThisResult> : ThreadSafeTaskWrapper
+    public abstract class InfernoTaskWithResultBase<TThisResult> : InfernoTask
     {
-        internal ThreadSafeTaskWrapperWithResultBase(params ThreadSafeTaskWrapper[] froms)
+        internal InfernoTaskWithResultBase(params InfernoTask[] froms)
             : base(froms)
         {
 
@@ -11,53 +11,53 @@
         {
             Success(new object[] { result! });
         }
-        public ThreadSafeTaskWrapperNoResultWithArgument<TThisResult> Then(
+        public InfernoTaskNoResultWithArgument<TThisResult> Then(
             Action<TThisResult> callback)
         {
             return ExecuteOrScheduleTask(
-                new ThreadSafeTaskWrapperNoResultWithArgument<TThisResult>(callback, this)
+                new InfernoTaskNoResultWithArgument<TThisResult>(callback, this)
             );
         }
-        public ThreadSafeTaskWrapperWithResultArgument<TThisResult, TNextResult> Then<TNextResult>(
+        public InfernoTaskWithResultArgument<TThisResult, TNextResult> Then<TNextResult>(
             Func<TThisResult, TNextResult> callback)
         {
-            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperWithResultArgument<TThisResult, TNextResult>(
+            return ExecuteOrScheduleTask(new InfernoTaskWithResultArgument<TThisResult, TNextResult>(
                 callback, this)
             );
         }
-        public ThreadSafeTaskWrapperPromiseNoArgument<TNextResult> Then<TNextResult>(
+        public InfernoTaskPromiseNoArgument<TNextResult> Then<TNextResult>(
             Promise<TNextResult> promise)
         {
-            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperPromiseNoArgument<TNextResult>(
+            return ExecuteOrScheduleTask(new InfernoTaskPromiseNoArgument<TNextResult>(
                 promise, this));
         }
-        public ThreadSafeTaskWrapperPromiseReturnWithArgument<TThisResult, TNextResult> Then<TNextResult>(
+        public InfernoTaskPromiseReturnWithArgument<TThisResult, TNextResult> Then<TNextResult>(
             Func<TThisResult, Promise<TNextResult>> promise)
         {
-            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperPromiseReturnWithArgument<TThisResult, TNextResult>(
+            return ExecuteOrScheduleTask(new InfernoTaskPromiseReturnWithArgument<TThisResult, TNextResult>(
                 promise, this));
         }
-        public ThreadSafeTaskWrapperVoidPromiseReturn<TThisResult> Then<TNextResult>(
+        public InfernoTaskVoidPromiseReturn<TThisResult> Then<TNextResult>(
             Func<TThisResult, PromiseVoid> promise)
         {
-            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperVoidPromiseReturn<TThisResult>(
+            return ExecuteOrScheduleTask(new InfernoTaskVoidPromiseReturn<TThisResult>(
                 promise, this));
         }
-        public ThreadSafeTaskWrapperPromiseWithArgument<TThisResult, TNextResult> Then<TNextResult>(PromiseParametrized<TThisResult, TNextResult> promise)
+        public InfernoTaskPromiseWithArgument<TThisResult, TNextResult> Then<TNextResult>(PromiseParametrized<TThisResult, TNextResult> promise)
         {
-            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperPromiseWithArgument<TThisResult, TNextResult>(
+            return ExecuteOrScheduleTask(new InfernoTaskPromiseWithArgument<TThisResult, TNextResult>(
                 promise, this));
         }
-        public ThreadSafeTaskWrapperWithResultBase<TNextResult> ThenCreateTask<TNextResult>(
-            Func<TThisResult, ThreadSafeTaskWrapperWithResult<TNextResult>> callback)
+        public InfernoTaskWithResultBase<TNextResult> ThenCreateTask<TNextResult>(
+            Func<TThisResult, InfernoTaskWithResult<TNextResult>> callback)
         {
-            return ThenCreateTask((a=> (ThreadSafeTaskWrapperWithResultBase<TNextResult>)callback(a)));
+            return ThenCreateTask((a=> (InfernoTaskWithResultBase<TNextResult>)callback(a)));
         }
-        public ThreadSafeTaskWrapperWithResultBase<TNextResult> ThenCreateTask<TNextResult>(
-            Func<TThisResult, ThreadSafeTaskWrapperWithResultBase<TNextResult>> callback)
+        public InfernoTaskWithResultBase<TNextResult> ThenCreateTask<TNextResult>(
+            Func<TThisResult, InfernoTaskWithResultBase<TNextResult>> callback)
         {
-            ThreadSafeTaskWrapperWithResultArgument<TNextResult, TNextResult>? toReturn = null;
-            ThreadSafeTaskWrapperNoResult task = new ThreadSafeTaskWrapperNoResult(
+            InfernoTaskWithResultArgument<TNextResult, TNextResult>? toReturn = null;
+            InfernoTaskNoResult task = new InfernoTaskNoResult(
                 () =>
                 {
                     try
@@ -72,20 +72,20 @@
 
                 }, this
             );
-            toReturn = new ThreadSafeTaskWrapperWithResultArgument<TNextResult, TNextResult>((r) => r!, task);
+            toReturn = new InfernoTaskWithResultArgument<TNextResult, TNextResult>((r) => r!, task);
             ExecuteOrScheduleTask(task);
             return toReturn;
         }
         #region Task Joining
-        public ThreadSafeTaskWrapperWithResultTwoArguments<TThisResult, TOtherResult, TNextResult> Join<TOtherResult, TNextResult>(
-            ThreadSafeTaskWrapperWithResultBase<TOtherResult> other,
+        public InfernoTaskWithResultTwoArguments<TThisResult, TOtherResult, TNextResult> Join<TOtherResult, TNextResult>(
+            InfernoTaskWithResultBase<TOtherResult> other,
             Func<TThisResult, TOtherResult, TNextResult> callback)
         {
             object lockObject = new object();
             bool doneOne = false;
             TOtherResult? otherResult = default(TOtherResult);
             TThisResult? thisResult = default(TThisResult);
-            var taskToReturn = new ThreadSafeTaskWrapperWithResultTwoArguments<TThisResult, TOtherResult, TNextResult>(
+            var taskToReturn = new InfernoTaskWithResultTwoArguments<TThisResult, TOtherResult, TNextResult>(
                 callback,
                 this, other);
             Action checkIfDoneAndRunIfIs = () =>
@@ -112,9 +112,9 @@
             });
             return taskToReturn;
         }
-        public ThreadSafeTaskWrapperWithResultThreeArguments<TThisResult, TOtherResult1, TOtherResult2, TNextResult> Join<TOtherResult1, TOtherResult2, TNextResult>(
-    ThreadSafeTaskWrapperWithResultBase<TOtherResult1> other1,
-    ThreadSafeTaskWrapperWithResultBase<TOtherResult2> other2,
+        public InfernoTaskWithResultThreeArguments<TThisResult, TOtherResult1, TOtherResult2, TNextResult> Join<TOtherResult1, TOtherResult2, TNextResult>(
+    InfernoTaskWithResultBase<TOtherResult1> other1,
+    InfernoTaskWithResultBase<TOtherResult2> other2,
     Func<TThisResult, TOtherResult1, TOtherResult2, TNextResult> callback)
         {
             object lockObject = new object();
@@ -123,8 +123,8 @@
             TOtherResult2? otherResult2 = default(TOtherResult2);
             TThisResult? thisResult = default(TThisResult);
 
-            ThreadSafeTaskWrapperWithResultThreeArguments<TThisResult, TOtherResult1, TOtherResult2, TNextResult> taskToReturn = 
-                new ThreadSafeTaskWrapperWithResultThreeArguments<TThisResult, TOtherResult1, TOtherResult2, TNextResult>(
+            InfernoTaskWithResultThreeArguments<TThisResult, TOtherResult1, TOtherResult2, TNextResult> taskToReturn = 
+                new InfernoTaskWithResultThreeArguments<TThisResult, TOtherResult1, TOtherResult2, TNextResult>(
                 callback,
                 this, other1, other2
             );
@@ -171,11 +171,11 @@
 
             return taskToReturn;
         }
-        public ThreadSafeTaskWrapperWithResultFourArguments<TThisResult, TOtherResult1, TOtherResult2, TOtherResult3, TNextResult> 
+        public InfernoTaskWithResultFourArguments<TThisResult, TOtherResult1, TOtherResult2, TOtherResult3, TNextResult> 
             Join<TOtherResult1, TOtherResult2, TOtherResult3, TNextResult>(
-    ThreadSafeTaskWrapperWithResultBase<TOtherResult1> other1,
-    ThreadSafeTaskWrapperWithResultBase<TOtherResult2> other2,
-    ThreadSafeTaskWrapperWithResultBase<TOtherResult3> other3,
+    InfernoTaskWithResultBase<TOtherResult1> other1,
+    InfernoTaskWithResultBase<TOtherResult2> other2,
+    InfernoTaskWithResultBase<TOtherResult3> other3,
     Func<TThisResult, TOtherResult1, TOtherResult2, TOtherResult3, TNextResult> callback)
         {
             object lockObject = new object();
@@ -185,7 +185,7 @@
             TOtherResult3? otherResult3 = default(TOtherResult3);
             TThisResult? thisResult = default(TThisResult);
 
-            var taskToReturn = new ThreadSafeTaskWrapperWithResultFourArguments<TThisResult, TOtherResult1, TOtherResult2, TOtherResult3, TNextResult>(callback,
+            var taskToReturn = new InfernoTaskWithResultFourArguments<TThisResult, TOtherResult1, TOtherResult2, TOtherResult3, TNextResult>(callback,
                 this, other1, other2, other3
             );
 

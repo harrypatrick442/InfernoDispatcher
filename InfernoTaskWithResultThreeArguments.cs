@@ -1,9 +1,9 @@
 ﻿namespace InfernoDispatcher
 {
-    public class ThreadSafeTaskWrapperWithResultThreeArguments<TArgument1, TArgument2, TArgument3, TThisResult> : ThreadSafeTaskWrapperWithResultBase<TThisResult>
+    public class InfernoTaskWithResultThreeArguments<TArgument1, TArgument2, TArgument3, TThisResult> : InfernoTaskWithResultBase<TThisResult>
     {
         private readonly Func<TArgument1, TArgument2, TArgument3, TThisResult> _Callback;
-        internal ThreadSafeTaskWrapperWithResultThreeArguments(Func<TArgument1, TArgument2, TArgument3, TThisResult> callback, params ThreadSafeTaskWrapper[] froms)
+        internal InfernoTaskWithResultThreeArguments(Func<TArgument1, TArgument2, TArgument3, TThisResult> callback, params InfernoTask[] froms)
             : base(froms)
         {
             _Callback = callback;

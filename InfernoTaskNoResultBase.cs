@@ -1,8 +1,8 @@
 ﻿namespace InfernoDispatcher
 {
-    public abstract class ThreadSafeTaskWrapperNoResultBase : ThreadSafeTaskWrapper
+    public abstract class InfernoTaskNoResultBase : InfernoTask
     {
-        internal ThreadSafeTaskWrapperNoResultBase(params ThreadSafeTaskWrapper[] froms) : base(froms)
+        internal InfernoTaskNoResultBase(params InfernoTask[] froms) : base(froms)
         {
 
         }

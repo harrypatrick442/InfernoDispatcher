@@ -1,9 +1,9 @@
 ﻿namespace InfernoDispatcher
 {
-    public class ThreadSafeTaskWrapperVoidPromiseNoArguments : ThreadSafeTaskWrapperNoResultBase
+    public class InfernoTaskVoidPromiseNoArguments : InfernoTaskNoResultBase
     {
         private PromiseVoid _Promise;
-        internal ThreadSafeTaskWrapperVoidPromiseNoArguments(PromiseVoid promise, params ThreadSafeTaskWrapper[] froms) : base(froms)
+        internal InfernoTaskVoidPromiseNoArguments(PromiseVoid promise, params InfernoTask[] froms) : base(froms)
         {
             _Promise = promise;
         }

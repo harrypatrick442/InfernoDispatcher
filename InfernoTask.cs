@@ -1,8 +1,6 @@
-﻿using System.Threading.Tasks;
-
-namespace InfernoDispatcher
+﻿namespace InfernoDispatcher
 {
-    public abstract class ThreadSafeTaskWrapper
+    public abstract class InfernoTask
     {
         protected bool _Cancelled;
         public bool Cancelled {
@@ -16,24 +14,24 @@ namespace InfernoDispatcher
         internal object[]? _Result;
         internal object[]? Arguments { get; set; }
         protected readonly object _LockObject = new object();
-        protected List<ThreadSafeTaskWrapper>? _Thens;
-        protected List<ThreadSafeTaskWrapperNoResult>? _Catchs;
+        protected List<InfernoTask>? _Thens;
+        protected List<InfernoTaskNoResult>? _Catchs;
         protected bool _IsCompleted = false;
         protected Exception? _Exception;
         internal CountdownLatch? _CountdownLatchWait;
-        private ThreadSafeTaskWrapper[] _Froms;
-        internal ThreadSafeTaskWrapper(params ThreadSafeTaskWrapper[] froms)
+        private InfernoTask[] _Froms;
+        internal InfernoTask(params InfernoTask[] froms)
         {
             _Froms = froms;
         }
-        internal void AddFrom(ThreadSafeTaskWrapper from)
+        internal void AddFrom(InfernoTask from)
         {
             bool cancelled;
             lock (_LockObject) {
                 if (!_IsCompleted) {
                     var oldFroms = _Froms;
                     int length = oldFroms.Length;
-                    _Froms = new ThreadSafeTaskWrapper[length + 1];
+                    _Froms = new InfernoTask[length + 1];
                     Array.Copy(oldFroms, _Froms, length);
                     _Froms[length] = from;
                     return;
@@ -49,10 +47,10 @@ namespace InfernoDispatcher
         public void Cancel() {
             Cancel(null);
         }
-        protected void Cancel(ThreadSafeTaskWrapper? doingCancelIfNotNullConsiderOtherDependencies)
+        protected void Cancel(InfernoTask? doingCancelIfNotNullConsiderOtherDependencies)
         {
-            List<ThreadSafeTaskWrapper>? thens;
-            ThreadSafeTaskWrapper[] froms;
+            List<InfernoTask>? thens;
+            InfernoTask[] froms;
             lock (_LockObject)
             {
                 if (_IsCompleted) return;
@@ -74,19 +72,19 @@ namespace InfernoDispatcher
                 _Froms = null;
                 _CountdownLatchWait?.Signal();
             }
-            foreach (ThreadSafeTaskWrapper from in froms)
+            foreach (InfernoTask from in froms)
             {
                 from.Cancel(this);
             }
             if (thens != null)
             {
-                foreach (ThreadSafeTaskWrapper then in thens)
+                foreach (InfernoTask then in thens)
                 {
                     then.Cancel();
                 }
             }
         }
-        internal TTask ExecuteOrScheduleTask<TTask>(TTask task, bool noRunCosAlreadyRun = false) where TTask : ThreadSafeTaskWrapper
+        internal TTask ExecuteOrScheduleTask<TTask>(TTask task, bool noRunCosAlreadyRun = false) where TTask : InfernoTask
         {
             Exception? exception;
             bool cancelled;
@@ -97,7 +95,7 @@ namespace InfernoDispatcher
                 {
                     if (_Thens == null)
                     {
-                        _Thens = new List<ThreadSafeTaskWrapper>(1) { task };
+                        _Thens = new List<InfernoTask>(1) { task };
                     }
                     else
                     {
@@ -127,8 +125,8 @@ namespace InfernoDispatcher
         }
         internal void Success(object[]? result)
         {
-            List<ThreadSafeTaskWrapper>? thens;
-            List<ThreadSafeTaskWrapperNoResult>? catchs;
+            List<InfernoTask>? thens;
+            List<InfernoTaskNoResult>? catchs;
             lock (_LockObject)
             {
                 if (_IsCompleted) return;
@@ -142,14 +140,14 @@ namespace InfernoDispatcher
             }
             if (thens != null)
             {
-                foreach (ThreadSafeTaskWrapper then in thens)
+                foreach (InfernoTask then in thens)
                 {
                     Dispatcher.Instance.Run(then, result);
                 }
             }
             if (catchs != null)
             {
-                foreach (ThreadSafeTaskWrapperNoResult catcher in catchs)
+                foreach (InfernoTaskNoResult catcher in catchs)
                 {
                     catcher.CompleteCatcherWithoutException(result);
                 }
@@ -157,8 +155,8 @@ namespace InfernoDispatcher
         }
         internal void Fail(Exception ex)
         {
-            List<ThreadSafeTaskWrapper>? thens;
-            List<ThreadSafeTaskWrapperNoResult>? catches;
+            List<InfernoTask>? thens;
+            List<InfernoTaskNoResult>? catches;
             lock (_LockObject)
             {
                 if (_IsCompleted) return;
@@ -171,7 +169,7 @@ namespace InfernoDispatcher
                 _CountdownLatchWait?.Signal();
             }
             if (thens == null) return;
-            foreach (ThreadSafeTaskWrapper then in thens)
+            foreach (InfernoTask then in thens)
             {
                 then.Fail(ex);
             }
@@ -195,23 +193,23 @@ namespace InfernoDispatcher
         {
             System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(_Exception!).Throw();
         }
-        public ThreadSafeTaskWrapperVoidPromiseNoArguments Then(PromiseVoid promise)
+        public InfernoTaskVoidPromiseNoArguments Then(PromiseVoid promise)
         {
-            // Create a new ThreadSafeTaskWrapperNoResult that runs the callback after this task completes
-            ThreadSafeTaskWrapperVoidPromiseNoArguments task = new ThreadSafeTaskWrapperVoidPromiseNoArguments(
+            // Create a new InfernoTaskNoResult that runs the callback after this task completes
+            InfernoTaskVoidPromiseNoArguments task = new InfernoTaskVoidPromiseNoArguments(
                 promise, this);
             ExecuteOrScheduleTask(task);
             return task;
         }
-        public ThreadSafeTaskWrapperNoResult Then(Action callback)
+        public InfernoTaskNoResult Then(Action callback)
         {
-            // Create a new ThreadSafeTaskWrapperNoResult that runs the callback after this task completes
-            ThreadSafeTaskWrapperNoResult task = new ThreadSafeTaskWrapperNoResult(callback, this);
+            // Create a new InfernoTaskNoResult that runs the callback after this task completes
+            InfernoTaskNoResult task = new InfernoTaskNoResult(callback, this);
             ExecuteOrScheduleTask(task);
             return task;
         }
 
-        public ThreadSafeTaskWrapperNoResult Then(ThreadSafeTaskWrapperNoResult task)
+        public InfernoTaskNoResult Then(InfernoTaskNoResult task)
         {
             // Chain the existing task after this one
             task.AddFrom(this);
@@ -219,35 +217,35 @@ namespace InfernoDispatcher
             return task;
         }
 
-        public ThreadSafeTaskWrapperWithResult<TNextResult> Then<TNextResult>(Func<TNextResult> callback)
+        public InfernoTaskWithResult<TNextResult> Then<TNextResult>(Func<TNextResult> callback)
         {
-            // Create a new ThreadSafeTaskWrapperWithResult to chain a result-producing task
-            ThreadSafeTaskWrapperWithResult<TNextResult> task = new ThreadSafeTaskWrapperWithResult<TNextResult>(callback, this);
+            // Create a new InfernoTaskWithResult to chain a result-producing task
+            InfernoTaskWithResult<TNextResult> task = new InfernoTaskWithResult<TNextResult>(callback, this);
             ExecuteOrScheduleTask(task);
             return task;
         }
 
-        public ThreadSafeTaskWrapperWithResult<TNextResult> Then<TNextResult>(ThreadSafeTaskWrapperWithResult<TNextResult> task)
+        public InfernoTaskWithResult<TNextResult> Then<TNextResult>(InfernoTaskWithResult<TNextResult> task)
         {
             // Chain the existing result-producing task after this one
             task.AddFrom(this);
             ExecuteOrScheduleTask(task, noRunCosAlreadyRun: true);
             return task;
         }
-        public ThreadSafeTaskWrapperPromiseReturnNoArgument<TNextResult> Then<TNextResult>(
+        public InfernoTaskPromiseReturnNoArgument<TNextResult> Then<TNextResult>(
             Func<Promise<TNextResult>> promise)
         {
-            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperPromiseReturnNoArgument<TNextResult>(
+            return ExecuteOrScheduleTask(new InfernoTaskPromiseReturnNoArgument<TNextResult>(
                 promise, this));
         }
-        public ThreadSafeTaskWrapperVoidPromiseReturnNoArgument Then<TNextResult>(
+        public InfernoTaskVoidPromiseReturnNoArgument Then<TNextResult>(
             Func<PromiseVoid> promise)
         {
-            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperVoidPromiseReturnNoArgument(
+            return ExecuteOrScheduleTask(new InfernoTaskVoidPromiseReturnNoArgument(
                 promise, this));
         }
-        internal ThreadSafeTaskWrapperWithResultBase<TNextResult> ThenExistingTask<TNextResult>(
-            ThreadSafeTaskWrapperWithResultArgument<TNextResult, TNextResult> task)
+        internal InfernoTaskWithResultBase<TNextResult> ThenExistingTask<TNextResult>(
+            InfernoTaskWithResultArgument<TNextResult, TNextResult> task)
         {
             // Chain the existing result-producing task after this one
             task.AddFrom(this);
@@ -255,10 +253,10 @@ namespace InfernoDispatcher
             return task;
         }
 
-        public ThreadSafeTaskWrapperNoResult ThenCreateTask(Func<ThreadSafeTaskWrapperNoResult> callback)
+        public InfernoTaskNoResult ThenCreateTask(Func<InfernoTaskNoResult> callback)
         {
-            ThreadSafeTaskWrapperNoResult? toReturn = null;
-            ThreadSafeTaskWrapperNoResult task = new ThreadSafeTaskWrapperNoResult(
+            InfernoTaskNoResult? toReturn = null;
+            InfernoTaskNoResult task = new InfernoTaskNoResult(
                 () =>
                 {
                     try
@@ -272,18 +270,18 @@ namespace InfernoDispatcher
                     }
                 }, this
             );
-            toReturn = new ThreadSafeTaskWrapperNoResult(() => { }, task);
+            toReturn = new InfernoTaskNoResult(() => { }, task);
             ExecuteOrScheduleTask(task);
             return toReturn;
         }
 
-        public ThreadSafeTaskWrapperWithResult<TNextResult> ThenCreateTask<TNextResult>(
-            Func<ThreadSafeTaskWrapperWithResult<TNextResult>> callback)
+        public InfernoTaskWithResult<TNextResult> ThenCreateTask<TNextResult>(
+            Func<InfernoTaskWithResult<TNextResult>> callback)
         {
             // Chain a new result-producing task that is returned by the callback function
             TNextResult? result = default;
-            ThreadSafeTaskWrapperWithResult<TNextResult>? toReturn = null;
-            ThreadSafeTaskWrapperNoResult task = new ThreadSafeTaskWrapperNoResult(
+            InfernoTaskWithResult<TNextResult>? toReturn = null;
+            InfernoTaskNoResult task = new InfernoTaskNoResult(
                 () =>
                 {
                     try
@@ -297,34 +295,34 @@ namespace InfernoDispatcher
                     }
                 }, this
             );
-            toReturn = new ThreadSafeTaskWrapperWithResult<TNextResult>(() => result!, task);
+            toReturn = new InfernoTaskWithResult<TNextResult>(() => result!, task);
             ExecuteOrScheduleTask(task);
             return toReturn;
         }
-        public ThreadSafeTaskWrapperNoResult Join(ThreadSafeTaskWrapperNoResult other, Action callback)
+        public InfernoTaskNoResult Join(InfernoTaskNoResult other, Action callback)
         {
             return Join(callback, other);
         }
 
-        public ThreadSafeTaskWrapperNoResult Join(
-            ThreadSafeTaskWrapperNoResult other1,
-            ThreadSafeTaskWrapperNoResult other2,
+        public InfernoTaskNoResult Join(
+            InfernoTaskNoResult other1,
+            InfernoTaskNoResult other2,
             Action callback)
         {
             return Join(callback, other1, other2);
         }
 
-        public ThreadSafeTaskWrapperNoResult Join(
-            ThreadSafeTaskWrapperNoResult other1,
-            ThreadSafeTaskWrapperNoResult other2,
-            ThreadSafeTaskWrapperNoResult other3,
+        public InfernoTaskNoResult Join(
+            InfernoTaskNoResult other1,
+            InfernoTaskNoResult other2,
+            InfernoTaskNoResult other3,
             Action callback)
         {
             return Join(callback, other1, other2, other3);
         }
-        public ThreadSafeTaskWrapperNoResult Join(
+        public InfernoTaskNoResult Join(
                     Action callback,
-                    params ThreadSafeTaskWrapperNoResult[] others)
+                    params InfernoTaskNoResult[] others)
         {
             // Lock object for thread-safe operation
             object lockObject = new object();
@@ -334,7 +332,7 @@ namespace InfernoDispatcher
             int totalTasks = others.Length + 1;
 
             // Create the new task that will run the callback after all others are done
-            ThreadSafeTaskWrapperNoResult taskToReturn = new ThreadSafeTaskWrapperNoResult(callback, this);
+            InfernoTaskNoResult taskToReturn = new InfernoTaskNoResult(callback, this);
 
             // Method to check if all tasks are done
             Action checkIfDoneAndRunIfIs = () =>
@@ -361,8 +359,8 @@ namespace InfernoDispatcher
 
             return taskToReturn;
         }
-        public ThreadSafeTaskWrapperNoResult Catch(Action<Exception> callback) {
-            ThreadSafeTaskWrapperNoResult catcher = new ThreadSafeTaskWrapperNoResult(() => {
+        public InfernoTaskNoResult Catch(Action<Exception> callback) {
+            InfernoTaskNoResult catcher = new InfernoTaskNoResult(() => {
                 Exception ex;
                 lock (_LockObject) {
                     ex = _Exception!;
@@ -397,7 +395,7 @@ namespace InfernoDispatcher
         }
         internal void CompleteCatcherWithoutException(object[]? arguments)
         {
-            List<ThreadSafeTaskWrapper>? thens;
+            List<InfernoTask>? thens;
             lock (_LockObject)
             {
                 _IsCompleted = true;
@@ -407,7 +405,7 @@ namespace InfernoDispatcher
             }
             if (thens != null)
             {
-                foreach (ThreadSafeTaskWrapper then in thens)
+                foreach (InfernoTask then in thens)
                 {
                     Dispatcher.Instance.Run(then, arguments);
                 }

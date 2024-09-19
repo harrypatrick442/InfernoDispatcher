@@ -20,7 +20,7 @@ namespace InfernoDispatcher
         private int? _MaxTaskQueueSize;
         private readonly object _LockObject = new object();
         private readonly HashSet<Thread> _Threads = new HashSet<Thread>();
-        private readonly LinkedList<ThreadSafeTaskWrapper> _TasksWaitingToBeRun = new LinkedList<ThreadSafeTaskWrapper>();
+        private readonly LinkedList<InfernoTask> _TasksWaitingToBeRun = new LinkedList<InfernoTask>();
         private Action<Exception>? _HandleUncaughtException;
         private Dispatcher(int nDegreesParallelism, Action<Exception>? handleUncaughtException)
         {
@@ -31,19 +31,19 @@ namespace InfernoDispatcher
                 throw new ArgumentOutOfRangeException(nameof(nDegreesParallelism), "Degrees of parallelism must be greater than zero.");
             }
         }
-        public ThreadSafeTaskWrapperNoResult Run(Action callback)
+        public InfernoTaskNoResult Run(Action callback)
         {
-                ThreadSafeTaskWrapperNoResult task = new ThreadSafeTaskWrapperNoResult(callback);
+                InfernoTaskNoResult task = new InfernoTaskNoResult(callback);
                 Run(task, null);
                 return task;
         }
-        public ThreadSafeTaskWrapperWithResult<T> Run<T>(Func<T> callback)
+        public InfernoTaskWithResult<T> Run<T>(Func<T> callback)
         {
-            ThreadSafeTaskWrapperWithResult<T> task = new ThreadSafeTaskWrapperWithResult<T>(callback);
+            InfernoTaskWithResult<T> task = new InfernoTaskWithResult<T>(callback);
             Run(task, null);
             return task;
         }
-        public void Run(ThreadSafeTaskWrapper task, object[]? arguments)
+        public void Run(InfernoTask task, object[]? arguments)
         {
             lock (_LockObject)
             {
@@ -59,7 +59,7 @@ namespace InfernoDispatcher
                 SpinUpNewThread(task);
             }
         }
-        private void SpinUpNewThread(ThreadSafeTaskWrapper? task) {
+        private void SpinUpNewThread(InfernoTask? task) {
             if (task == null) return;
             Thread? thread = null;
             object[]? arguments = task.Arguments;
@@ -90,7 +90,7 @@ namespace InfernoDispatcher
             _Threads.Add(thread);
             thread.Start();
         }
-        private ThreadSafeTaskWrapper? TakeTaskNoLock() {
+        private InfernoTask? TakeTaskNoLock() {
             var node = _TasksWaitingToBeRun.First;
             if (node == null) return null;
             _TasksWaitingToBeRun.RemoveFirst();

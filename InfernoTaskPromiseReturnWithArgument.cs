@@ -1,10 +1,10 @@
 ﻿namespace InfernoDispatcher
 {
-    public class ThreadSafeTaskWrapperVoidPromiseReturn<TArgument> : ThreadSafeTaskWrapperNoResultBase
+    public class InfernoTaskPromiseReturnWithArgument<TArgument, TThisResult> : InfernoTaskWithResultBase<TThisResult>
     {
-        private readonly Func<TArgument, PromiseVoid> _Func;
-        internal ThreadSafeTaskWrapperVoidPromiseReturn(Func<TArgument, PromiseVoid> func, 
-            params ThreadSafeTaskWrapper[] froms)
+        private readonly Func<TArgument, Promise<TThisResult>> _Func;
+        internal InfernoTaskPromiseReturnWithArgument(Func<TArgument, Promise<TThisResult>> func, 
+            params InfernoTask[] froms)
             : base(froms)
         {
             _Func = func;

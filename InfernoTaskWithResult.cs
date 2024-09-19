@@ -2,10 +2,10 @@
 
 namespace InfernoDispatcher
 {
-    public class ThreadSafeTaskWrapperWithResult<TThisResult> : ThreadSafeTaskWrapperWithResultBase<TThisResult>
+    public class InfernoTaskWithResult<TThisResult> : InfernoTaskWithResultBase<TThisResult>
     {
         private readonly Func<TThisResult> _Callback;
-        internal ThreadSafeTaskWrapperWithResult(Func<TThisResult> callback, params ThreadSafeTaskWrapper[] froms)
+        internal InfernoTaskWithResult(Func<TThisResult> callback, params InfernoTask[] froms)
             : base(froms)
         {
             _Callback = callback;

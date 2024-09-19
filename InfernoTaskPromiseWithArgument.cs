@@ -1,9 +1,9 @@
 ﻿namespace InfernoDispatcher
 {
-    public class ThreadSafeTaskWrapperPromiseWithArgument<TArgument, TThisResult> : ThreadSafeTaskWrapperWithResultBase<TThisResult>
+    public class InfernoTaskPromiseWithArgument<TArgument, TThisResult> : InfernoTaskWithResultBase<TThisResult>
     {
         private readonly PromiseParametrized<TArgument, TThisResult> _Promise;
-        internal ThreadSafeTaskWrapperPromiseWithArgument(PromiseParametrized<TArgument, TThisResult> promise, params ThreadSafeTaskWrapper[] froms)
+        internal InfernoTaskPromiseWithArgument(PromiseParametrized<TArgument, TThisResult> promise, params InfernoTask[] froms)
             : base(froms)
         {
             _Promise = promise;

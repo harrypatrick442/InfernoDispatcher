@@ -1,9 +1,9 @@
 ﻿namespace InfernoDispatcher
 {
-    public class ThreadSafeTaskWrapperNoResult : ThreadSafeTaskWrapperNoResultBase
+    public class InfernoTaskNoResult : InfernoTaskNoResultBase
     {
         private Action _Callback;
-        internal ThreadSafeTaskWrapperNoResult(Action callback, params ThreadSafeTaskWrapper[] froms) : base(froms)
+        internal InfernoTaskNoResult(Action callback, params InfernoTask[] froms) : base(froms)
         {
             _Callback = callback;
         }
