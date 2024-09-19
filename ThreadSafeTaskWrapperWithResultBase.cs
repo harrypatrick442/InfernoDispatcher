@@ -25,12 +25,25 @@
                 callback, this)
             );
         }
-        public ThreadSafeTaskWrapperPromiseNoArgument<TNextResult> Then<TNextResult>(Promise<TNextResult> promise)
+        public ThreadSafeTaskWrapperPromiseNoArgument<TNextResult> Then<TNextResult>(
+            Promise<TNextResult> promise)
         {
             return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperPromiseNoArgument<TNextResult>(
                 promise, this));
         }
-        public ThreadSafeTaskWrapperPromiseWithArgument<TThisResult, TNextResult> Then<TNextResult>(Promise<TThisResult, TNextResult> promise)
+        public ThreadSafeTaskWrapperPromiseReturnWithArgument<TThisResult, TNextResult> Then<TNextResult>(
+            Func<TThisResult, Promise<TNextResult>> promise)
+        {
+            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperPromiseReturnWithArgument<TThisResult, TNextResult>(
+                promise, this));
+        }
+        public ThreadSafeTaskWrapperVoidPromiseReturn<TThisResult> Then<TNextResult>(
+            Func<TThisResult, PromiseVoid> promise)
+        {
+            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperVoidPromiseReturn<TThisResult>(
+                promise, this));
+        }
+        public ThreadSafeTaskWrapperPromiseWithArgument<TThisResult, TNextResult> Then<TNextResult>(PromiseParametrized<TThisResult, TNextResult> promise)
         {
             return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperPromiseWithArgument<TThisResult, TNextResult>(
                 promise, this));

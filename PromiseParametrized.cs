@@ -1,9 +1,9 @@
 ﻿namespace InfernoDispatcher
 {
-    public class Promise<TParam, TResult>
+    public class PromiseParametrized<TParam, TResult>
     {
         private Action<TParam, Action<TResult>, Action<Exception>> _Func;
-        public Promise(Action<TParam, Action<TResult>, Action<Exception>> func)
+        public PromiseParametrized(Action<TParam, Action<TResult>, Action<Exception>> func)
         {
             _Func = func;
         }
@@ -27,10 +27,10 @@
             _Func(resolve, reject);
         }
     }
-    public class VoidPromise<TParam>
+    public class PromiseParametrizedVoid<TParam>
     {
         private Action<TParam, Action, Action<Exception>> _Func;
-        public VoidPromise(Action<TParam, Action, Action<Exception>> func)
+        public PromiseParametrizedVoid(Action<TParam, Action, Action<Exception>> func)
         {
             _Func = func;
         }
@@ -38,14 +38,14 @@
         {
             _Func(param, resolve, reject);
         }
-        public VoidPromise Apply(TParam param) {
-            return new VoidPromise((resolve, reject) => _Func(param, resolve, reject));
+        public PromiseVoid Apply(TParam param) {
+            return new PromiseVoid((resolve, reject) => _Func(param, resolve, reject));
         }
     }
-    public class VoidPromise
+    public class PromiseVoid
     {
         private Action<Action, Action<Exception>> _Func;
-        public VoidPromise(Action<Action, Action<Exception>> func)
+        public PromiseVoid(Action<Action, Action<Exception>> func)
         {
             _Func = func;
         }
@@ -56,21 +56,21 @@
     }
     public class Promise
     {
-        public static VoidPromise New(Action<Action, Action<Exception>> c)
+        public static PromiseVoid New(Action<Action, Action<Exception>> c)
         {
-            return new VoidPromise(c);
+            return new PromiseVoid(c);
         }
-        public static VoidPromise<TArgument> New<TArgument>(Action<TArgument, Action, Action<Exception>> c)
+        public static PromiseParametrizedVoid<TArgument> New<TArgument>(Action<TArgument, Action, Action<Exception>> c)
         {
-            return new VoidPromise<TArgument>(c);
+            return new PromiseParametrizedVoid<TArgument>(c);
         }
         public static Promise<TReturn> New<TReturn>(Action<Action<TReturn>, Action<Exception>> c)
         {
             return new Promise<TReturn>(c);
         }
-        public static Promise<TArgument, TReturn> New<TArgument, TReturn>(Action<TArgument, Action<TReturn>, Action<Exception>> c)
+        public static PromiseParametrized<TArgument, TReturn> New<TArgument, TReturn>(Action<TArgument, Action<TReturn>, Action<Exception>> c)
         {
-            return new Promise<TArgument, TReturn>(c);
+            return new PromiseParametrized<TArgument, TReturn>(c);
         }
     }
 }

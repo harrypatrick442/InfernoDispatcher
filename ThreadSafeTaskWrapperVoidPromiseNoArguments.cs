@@ -2,8 +2,8 @@
 {
     public class ThreadSafeTaskWrapperVoidPromiseNoArguments : ThreadSafeTaskWrapperNoResultBase
     {
-        private VoidPromise _Promise;
-        internal ThreadSafeTaskWrapperVoidPromiseNoArguments(VoidPromise promise, params ThreadSafeTaskWrapper[] froms) : base(froms)
+        private PromiseVoid _Promise;
+        internal ThreadSafeTaskWrapperVoidPromiseNoArguments(PromiseVoid promise, params ThreadSafeTaskWrapper[] froms) : base(froms)
         {
             _Promise = promise;
         }

@@ -2,8 +2,8 @@
 {
     public class ThreadSafeTaskWrapperPromiseWithArgument<TArgument, TThisResult> : ThreadSafeTaskWrapperWithResultBase<TThisResult>
     {
-        private readonly Promise<TArgument, TThisResult> _Promise;
-        internal ThreadSafeTaskWrapperPromiseWithArgument(Promise<TArgument, TThisResult> promise, params ThreadSafeTaskWrapper[] froms)
+        private readonly PromiseParametrized<TArgument, TThisResult> _Promise;
+        internal ThreadSafeTaskWrapperPromiseWithArgument(PromiseParametrized<TArgument, TThisResult> promise, params ThreadSafeTaskWrapper[] froms)
             : base(froms)
         {
             _Promise = promise;

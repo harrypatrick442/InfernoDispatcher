@@ -195,7 +195,7 @@ namespace InfernoDispatcher
         {
             System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(_Exception!).Throw();
         }
-        public ThreadSafeTaskWrapperVoidPromiseNoArguments Then(VoidPromise promise)
+        public ThreadSafeTaskWrapperVoidPromiseNoArguments Then(PromiseVoid promise)
         {
             // Create a new ThreadSafeTaskWrapperNoResult that runs the callback after this task completes
             ThreadSafeTaskWrapperVoidPromiseNoArguments task = new ThreadSafeTaskWrapperVoidPromiseNoArguments(
@@ -233,6 +233,18 @@ namespace InfernoDispatcher
             task.AddFrom(this);
             ExecuteOrScheduleTask(task, noRunCosAlreadyRun: true);
             return task;
+        }
+        public ThreadSafeTaskWrapperPromiseReturnNoArgument<TNextResult> Then<TNextResult>(
+            Func<Promise<TNextResult>> promise)
+        {
+            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperPromiseReturnNoArgument<TNextResult>(
+                promise, this));
+        }
+        public ThreadSafeTaskWrapperVoidPromiseReturnNoArgument Then<TNextResult>(
+            Func<PromiseVoid> promise)
+        {
+            return ExecuteOrScheduleTask(new ThreadSafeTaskWrapperVoidPromiseReturnNoArgument(
+                promise, this));
         }
         internal ThreadSafeTaskWrapperWithResultBase<TNextResult> ThenExistingTask<TNextResult>(
             ThreadSafeTaskWrapperWithResultArgument<TNextResult, TNextResult> task)
