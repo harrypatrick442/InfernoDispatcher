@@ -1,4 +1,6 @@
-﻿namespace InfernoDispatcher
+﻿using InfernoDispatcher.Tasks;
+
+namespace InfernoDispatcher.Dispatchers
 {
     public sealed class InfernoDispatcher : DispatcherBase
     {
@@ -9,7 +11,7 @@
         private readonly LinkedList<InfernoTask> _TasksWaitingToBeRun = new LinkedList<InfernoTask>();
         internal InfernoDispatcher(
             int nDegreesParallelism, int? maxTaskQueueSize, Action<Exception>? handleUncaughtException
-            ):base(handleUncaughtException)
+            ) : base(handleUncaughtException)
         {
             _NDegreesParallelism = nDegreesParallelism;
             _MaxTaskQueueSize = maxTaskQueueSize;
@@ -25,7 +27,8 @@
                 task.Arguments = arguments;
                 if (_Threads.Count >= _NDegreesParallelism)
                 {
-                    if (_MaxTaskQueueSize!=null&&(_TasksWaitingToBeRun.Count > (int)_MaxTaskQueueSize)) {
+                    if (_MaxTaskQueueSize != null && _TasksWaitingToBeRun.Count > (int)_MaxTaskQueueSize)
+                    {
                         throw new Exception($"Maximum task queue size of {_MaxTaskQueueSize} exceeded");
                     }
                     _TasksWaitingToBeRun.AddLast(task);
@@ -34,11 +37,13 @@
                 SpinUpNewThread(task);
             }
         }
-        private void SpinUpNewThread(InfernoTask? task) {
+        private void SpinUpNewThread(InfernoTask? task)
+        {
             if (task == null) return;
             Thread? thread = null;
             object[]? arguments = task.Arguments;
-            thread = new Thread(() => {
+            thread = new Thread(() =>
+            {
                 if (!task.Cancelled)
                 {
                     try
@@ -65,7 +70,8 @@
             _Threads.Add(thread);
             thread.Start();
         }
-        private InfernoTask? TakeTaskNoLock() {
+        private InfernoTask? TakeTaskNoLock()
+        {
             var node = _TasksWaitingToBeRun.First;
             if (node == null) return null;
             _TasksWaitingToBeRun.RemoveFirst();

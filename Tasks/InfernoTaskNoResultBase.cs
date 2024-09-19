@@ -1,4 +1,6 @@
-﻿namespace InfernoDispatcher
+﻿using InfernoDispatcher.Core;
+
+namespace InfernoDispatcher.Tasks
 {
     public abstract class InfernoTaskNoResultBase : InfernoTask
     {
@@ -8,7 +10,7 @@
         }
         protected void Success()
         {
-            base.Success(null);
+            Success(null);
         }
         public void Wait()
         {

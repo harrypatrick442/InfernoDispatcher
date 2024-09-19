@@ -1,16 +1,16 @@
-﻿namespace InfernoDispatcher
+﻿namespace InfernoDispatcher.Core
 {
     internal class CountdownLatch
     {
         private object _LockObject = new object();
         private int _Count;
-        public int Count { get { lock(_LockObject) return _Count; } }
+        public int Count { get { lock (_LockObject) return _Count; } }
         private EventWaitHandle _EventWaitHandle;
 
         public CountdownLatch(int count = 1)
         {
             _Count = count;
-            _EventWaitHandle = new ManualResetEvent(count<1);
+            _EventWaitHandle = new ManualResetEvent(count < 1);
         }
         public void Increment()
         {
@@ -55,7 +55,7 @@
         {
             bool cancelled = false;
             using (CancellationTokenRegistration cancellationTokenRegistration = cancellationToken.Register(
-                ()=> { cancelled = true; Signal(); }))
+                () => { cancelled = true; Signal(); }))
             {
                 bool res = _EventWaitHandle.WaitOne();
                 if (cancelled)

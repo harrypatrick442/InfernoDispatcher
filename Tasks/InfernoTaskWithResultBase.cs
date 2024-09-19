@@ -1,6 +1,8 @@
 ﻿using System.Threading.Tasks;
+using InfernoDispatcher.Core;
+using InfernoDispatcher.Promises;
 
-namespace InfernoDispatcher
+namespace InfernoDispatcher.Tasks
 {
     public abstract class InfernoTaskWithResultBase<TThisResult> : InfernoTask
     {
@@ -21,7 +23,7 @@ namespace InfernoDispatcher
                 new InfernoTaskNoResultWithArgument<TThisResult>(callback, this)
             );
         }
-        public InfernoTaskWithResultArgument<TThisResult,TNextResult> Then<TNextResult>(
+        public InfernoTaskWithResultArgument<TThisResult, TNextResult> Then<TNextResult>(
             Func<TThisResult, TNextResult> callback)
         {
             return ExecuteOrScheduleTask(new InfernoTaskWithResultArgument<TThisResult, TNextResult>(
@@ -51,7 +53,7 @@ namespace InfernoDispatcher
         public InfernoTaskWithResultBase<TNextResult> ThenCreateTask<TNextResult>(
             Func<TThisResult, InfernoTaskWithResult<TNextResult>> callback)
         {
-            return ThenCreateTask((a=> (InfernoTaskWithResultBase<TNextResult>)callback(a)));
+            return ThenCreateTask(a => (InfernoTaskWithResultBase<TNextResult>)callback(a));
         }
         public InfernoTaskWithResultBase<TNextResult> ThenCreateTask<TNextResult>(
             Func<TThisResult, InfernoTaskWithResultBase<TNextResult>> callback)
@@ -84,8 +86,8 @@ namespace InfernoDispatcher
         {
             object lockObject = new object();
             bool doneOne = false;
-            TOtherResult? otherResult = default(TOtherResult);
-            TThisResult? thisResult = default(TThisResult);
+            TOtherResult? otherResult = default;
+            TThisResult? thisResult = default;
             var taskToReturn = new InfernoTaskWithResultTwoArguments<TThisResult, TOtherResult, TNextResult>(
                 callback,
                 this, other);
@@ -99,14 +101,14 @@ namespace InfernoDispatcher
                         return;
                     }
                 }
-                Dispatcher.Instance.Run(taskToReturn, new object[] {thisResult!, otherResult!});
+                Dispatcher.Instance.Run(taskToReturn, new object[] { thisResult!, otherResult! });
             };
             other.Then((otherResultIn) =>
             {
                 otherResult = otherResultIn;
                 checkIfDoneAndRunIfIs();
             });
-            this.Then((resultIn) =>
+            Then((resultIn) =>
             {
                 thisResult = resultIn;
                 checkIfDoneAndRunIfIs();
@@ -120,11 +122,11 @@ namespace InfernoDispatcher
         {
             object lockObject = new object();
             int doneCount = 0;
-            TOtherResult1? otherResult1 = default(TOtherResult1);
-            TOtherResult2? otherResult2 = default(TOtherResult2);
-            TThisResult? thisResult = default(TThisResult);
+            TOtherResult1? otherResult1 = default;
+            TOtherResult2? otherResult2 = default;
+            TThisResult? thisResult = default;
 
-            InfernoTaskWithResultThreeArguments<TThisResult, TOtherResult1, TOtherResult2, TNextResult> taskToReturn = 
+            InfernoTaskWithResultThreeArguments<TThisResult, TOtherResult1, TOtherResult2, TNextResult> taskToReturn =
                 new InfernoTaskWithResultThreeArguments<TThisResult, TOtherResult1, TOtherResult2, TNextResult>(
                 callback,
                 this, other1, other2
@@ -161,7 +163,7 @@ namespace InfernoDispatcher
                 checkIfDoneAndRunIfIs();
             });
 
-            this.Then((resultIn) =>
+            Then((resultIn) =>
             {
                 lock (lockObject)
                 {
@@ -172,7 +174,7 @@ namespace InfernoDispatcher
 
             return taskToReturn;
         }
-        public InfernoTaskWithResultFourArguments<TThisResult, TOtherResult1, TOtherResult2, TOtherResult3, TNextResult> 
+        public InfernoTaskWithResultFourArguments<TThisResult, TOtherResult1, TOtherResult2, TOtherResult3, TNextResult>
             Join<TOtherResult1, TOtherResult2, TOtherResult3, TNextResult>(
     InfernoTaskWithResultBase<TOtherResult1> other1,
     InfernoTaskWithResultBase<TOtherResult2> other2,
@@ -181,10 +183,10 @@ namespace InfernoDispatcher
         {
             object lockObject = new object();
             int doneCount = 0; // Track completion of all tasks
-            TOtherResult1? otherResult1 = default(TOtherResult1);
-            TOtherResult2? otherResult2 = default(TOtherResult2);
-            TOtherResult3? otherResult3 = default(TOtherResult3);
-            TThisResult? thisResult = default(TThisResult);
+            TOtherResult1? otherResult1 = default;
+            TOtherResult2? otherResult2 = default;
+            TOtherResult3? otherResult3 = default;
+            TThisResult? thisResult = default;
 
             var taskToReturn = new InfernoTaskWithResultFourArguments<TThisResult, TOtherResult1, TOtherResult2, TOtherResult3, TNextResult>(callback,
                 this, other1, other2, other3
@@ -199,7 +201,7 @@ namespace InfernoDispatcher
                         doneCount++;
                         return;
                     }
-                    Dispatcher.Instance.Run(taskToReturn, new object[] { thisResult!, otherResult1!, otherResult2!, otherResult3!});
+                    Dispatcher.Instance.Run(taskToReturn, new object[] { thisResult!, otherResult1!, otherResult2!, otherResult3! });
                 }
             };
 
@@ -230,7 +232,7 @@ namespace InfernoDispatcher
                 checkIfDoneAndRunIfIs();
             });
 
-            this.Then((resultIn) =>
+            Then((resultIn) =>
             {
                 lock (lockObject)
                 {
@@ -250,39 +252,44 @@ namespace InfernoDispatcher
             int millisecondsDelay,
             Action<TThisResult> callback)
         {
-            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) => {
-                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve(a));
+            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) =>
+            {
+                Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve(a));
             })).Then(callback);
         }
         public InfernoTaskWithResultArgument<TThisResult, TNextResult> Delay<TNextResult>(
             int millisecondsDelay,
             Func<TThisResult, TNextResult> callback)
         {
-            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) => {
-                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve(a));
+            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) =>
+            {
+                Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve(a));
             })).Then(callback);
         }
         public InfernoTaskPromiseReturnWithArgument<TThisResult, TNextResult> Delay<TNextResult>(
             int millisecondsDelay,
             Func<TThisResult, Promise<TNextResult>> promise)
         {
-            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) => {
-                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve(a));
+            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) =>
+            {
+                Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve(a));
             })).Then(promise);
         }
         public InfernoTaskVoidPromiseReturnWithArgument<TThisResult> Delay<TNextResult>(
             int millisecondsDelay,
             Func<TThisResult, PromiseVoid> func)
         {
-            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) => {
-                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve(a));
+            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) =>
+            {
+                Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve(a));
             })).Then<TThisResult>(func);
         }
         public InfernoTaskPromiseWithArgument<TThisResult, TNextResult> Delay<TNextResult>(
             int millisecondsDelay, PromiseParametrized<TThisResult, TNextResult> promise)
         {
-            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) => {
-                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve(a));
+            return Then(new PromiseParametrized<TThisResult, TThisResult>((a, resolve, reject) =>
+            {
+                Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve(a));
             })).Then(promise);
         }
         #endregion
@@ -300,7 +307,7 @@ namespace InfernoDispatcher
                     if (_Exception != null)
                     {
                         ThrowException();
-                        return default(TThisResult);
+                        return default;
                     }
                     return (TThisResult)_Result![0];
                 }
@@ -319,7 +326,7 @@ namespace InfernoDispatcher
                 if (_Exception != null)
                 {
                     ThrowException();
-                    return default(TThisResult);
+                    return default;
                 }
                 return (TThisResult)_Result![0];
             }
@@ -337,7 +344,7 @@ namespace InfernoDispatcher
                 if (_Exception != null)
                 {
                     ThrowException();
-                    return default(TThisResult);
+                    return default;
                 }
                 return (TThisResult)_Result![0];
             }

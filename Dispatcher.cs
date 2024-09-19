@@ -1,4 +1,5 @@
-﻿using InfernoDispatcher.Exceptions;
+﻿using InfernoDispatcher.Dispatchers;
+using InfernoDispatcher.Exceptions;
 
 namespace InfernoDispatcher
 {
@@ -11,7 +12,7 @@ namespace InfernoDispatcher
                 int? maxTaskQueueSize = null
             ) {
             if (_Instance != null) throw new AlreadyInitializedException(nameof(Dispatcher));
-            _Instance = new InfernoDispatcher(
+            _Instance = new InfernoDispatcher.Dispatchers.InfernoDispatcher(
                     nDegreesParallelism ?? Environment.ProcessorCount,
                     maxTaskQueueSize,
                     handleUncaughtException

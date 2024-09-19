@@ -1,4 +1,6 @@
-﻿namespace InfernoDispatcher
+﻿using InfernoDispatcher.Tasks;
+
+namespace InfernoDispatcher.Dispatchers
 {
     public abstract class DispatcherBase
     {
@@ -9,9 +11,9 @@
         }
         public InfernoTaskNoResult Run(Action callback)
         {
-                InfernoTaskNoResult task = new InfernoTaskNoResult(callback);
-                Run(task, null);
-                return task;
+            InfernoTaskNoResult task = new InfernoTaskNoResult(callback);
+            Run(task, null);
+            return task;
         }
         public InfernoTaskWithResult<T> Run<T>(Func<T> callback)
         {

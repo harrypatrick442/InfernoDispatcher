@@ -1,4 +1,6 @@
-﻿namespace InfernoDispatcher
+﻿using InfernoDispatcher.Promises;
+
+namespace InfernoDispatcher.Tasks
 {
     public class InfernoTaskVoidPromiseWithArgument<TArgument> : InfernoTaskNoResultBase
     {

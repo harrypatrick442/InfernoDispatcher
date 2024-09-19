@@ -1,4 +1,4 @@
-﻿namespace InfernoDispatcher
+﻿namespace InfernoDispatcher.Tasks
 {
     public class InfernoTaskNoResult : InfernoTaskNoResultBase
     {

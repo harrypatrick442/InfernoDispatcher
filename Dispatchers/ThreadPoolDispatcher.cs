@@ -1,12 +1,14 @@
-﻿namespace InfernoDispatcher
+﻿using InfernoDispatcher.Tasks;
+
+namespace InfernoDispatcher.Dispatchers
 {
-    public sealed class ThreadPoolDispatcher:DispatcherBase
+    public sealed class ThreadPoolDispatcher : DispatcherBase
     {
 
         public ThreadPoolDispatcher(
-            Action<Exception>? handleUncaughtException = null, 
+            Action<Exception>? handleUncaughtException = null,
             int? maxWorkerThreads = null,
-            int? maxIOThreads = null):base(handleUncaughtException)
+            int? maxIOThreads = null) : base(handleUncaughtException)
         {
             _HandleUncaughtException = handleUncaughtException;
             if (maxWorkerThreads != null || maxIOThreads != null)

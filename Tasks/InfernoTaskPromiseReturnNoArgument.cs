@@ -1,9 +1,11 @@
-﻿namespace InfernoDispatcher
+﻿using InfernoDispatcher.Promises;
+
+namespace InfernoDispatcher.Tasks
 {
-    public class InfernoTaskVoidPromiseReturnNoArgument : InfernoTaskNoResultBase
+    public class InfernoTaskPromiseReturnNoArgument<TThisResult> : InfernoTaskWithResultBase<TThisResult>
     {
-        private readonly Func<PromiseVoid> _Func;
-        internal InfernoTaskVoidPromiseReturnNoArgument(Func<PromiseVoid> func, 
+        private readonly Func<Promise<TThisResult>> _Func;
+        internal InfernoTaskPromiseReturnNoArgument(Func<Promise<TThisResult>> func,
             params InfernoTask[] froms)
             : base(froms)
         {

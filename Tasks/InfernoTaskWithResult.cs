@@ -1,9 +1,11 @@
-﻿namespace InfernoDispatcher
+﻿using static System.Runtime.InteropServices.JavaScript.JSType;
+
+namespace InfernoDispatcher.Tasks
 {
-    public class InfernoTaskWithResultArgument<TArgument1, TThisResult> : InfernoTaskWithResultBase<TThisResult>
+    public class InfernoTaskWithResult<TThisResult> : InfernoTaskWithResultBase<TThisResult>
     {
-        private readonly Func<TArgument1, TThisResult> _Callback;
-        internal InfernoTaskWithResultArgument(Func<TArgument1, TThisResult> callback, params InfernoTask[] froms)
+        private readonly Func<TThisResult> _Callback;
+        internal InfernoTaskWithResult(Func<TThisResult> callback, params InfernoTask[] froms)
             : base(froms)
         {
             _Callback = callback;
@@ -14,7 +16,7 @@
             try
             {
 
-                var result = _Callback((TArgument1)arguments![0]);
+                var result = _Callback();
                 Success(result);
             }
             catch (Exception ex)

@@ -1,4 +1,4 @@
-﻿namespace InfernoDispatcher
+﻿namespace InfernoDispatcher.Tasks
 {
     public class InfernoTaskWithResultFourArguments<TArgument1, TArgument2, TArgument3, TArgument4, TThisResult> : InfernoTaskWithResultBase<TThisResult>
     {

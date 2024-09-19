@@ -1,12 +1,16 @@
 ﻿using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
-namespace InfernoDispatcher
+using InfernoDispatcher.Promises;
+using InfernoDispatcher.Core;
+namespace InfernoDispatcher.Tasks
 {
     public abstract class InfernoTask : INotifyCompletion
     {
         protected bool _Cancelled;
-        public bool Cancelled {
-            get {
+        public bool Cancelled
+        {
+            get
+            {
                 lock (_LockObject)
                 {
                     return _Cancelled;
@@ -19,11 +23,16 @@ namespace InfernoDispatcher
         protected List<InfernoTask>? _Thens;
         protected List<InfernoTaskNoResult>? _Catchs;
         protected bool _IsCompleted = false;
-        public bool IsCompleted { get {
-                lock (_LockObject) {
+        public bool IsCompleted
+        {
+            get
+            {
+                lock (_LockObject)
+                {
                     return _IsCompleted;
                 }
-            } }
+            }
+        }
         protected Exception? _Exception;
         internal CountdownLatch? _CountdownLatchWait;
         private InfernoTask[] _Froms;
@@ -34,24 +43,28 @@ namespace InfernoDispatcher
         internal void AddFrom(InfernoTask from)
         {
             bool cancelled;
-            lock (_LockObject) {
-                if (!_IsCompleted) {
+            lock (_LockObject)
+            {
+                if (!_IsCompleted)
+                {
                     var oldFroms = _Froms;
                     int length = oldFroms.Length;
                     _Froms = new InfernoTask[length + 1];
                     Array.Copy(oldFroms, _Froms, length);
                     _Froms[length] = from;
                     return;
-                 }
+                }
                 cancelled = _Cancelled;
-             }
-            if (cancelled) {
+            }
+            if (cancelled)
+            {
                 from.Cancel(this);
                 return;
             }
         }
         public abstract void Run(object[]? arguments);
-        public void Cancel() {
+        public void Cancel()
+        {
             Cancel(null);
         }
         protected void Cancel(InfernoTask? doingCancelIfNotNullConsiderOtherDependencies)
@@ -61,9 +74,10 @@ namespace InfernoDispatcher
             lock (_LockObject)
             {
                 if (_IsCompleted) return;
-                if (doingCancelIfNotNullConsiderOtherDependencies != null) {
+                if (doingCancelIfNotNullConsiderOtherDependencies != null)
+                {
                     bool hasOtherDependenciesNotCancelled =
-                        _Thens==null/*just incase somehow*/?false:_Thens
+                        _Thens == null/*just incase somehow*/? false : _Thens
                         .Where(t => !t.Equals(doingCancelIfNotNullConsiderOtherDependencies) && !t.Cancelled)
                         .Any();
                     if (hasOtherDependenciesNotCancelled)
@@ -264,7 +278,7 @@ namespace InfernoDispatcher
         {
             // Chain the existing result-producing task after this one
             task.AddFrom(this);
-            ExecuteOrScheduleTask(task, noRunCosAlreadyRun:true);
+            ExecuteOrScheduleTask(task, noRunCosAlreadyRun: true);
             return task;
         }
         public InfernoTaskNoResult ThenCreateTask(Func<InfernoTaskNoResult> callback)
@@ -370,16 +384,19 @@ namespace InfernoDispatcher
             }
 
             // Also register the completion handler for 'this' task
-            this.Then(checkIfDoneAndRunIfIs);
+            Then(checkIfDoneAndRunIfIs);
 
             return taskToReturn;
         }
         #endregion
         #region Catch
-        public InfernoTaskNoResult Catch(Action<Exception> callback) {
-            InfernoTaskNoResult catcher = new InfernoTaskNoResult(() => {
+        public InfernoTaskNoResult Catch(Action<Exception> callback)
+        {
+            InfernoTaskNoResult catcher = new InfernoTaskNoResult(() =>
+            {
                 Exception ex;
-                lock (_LockObject) {
+                lock (_LockObject)
+                {
                     ex = _Exception!;
                 }
                 callback(ex);
@@ -387,7 +404,8 @@ namespace InfernoDispatcher
             Exception? exception;
             bool cancelled;
             object[]? resultAsRunArguments;
-            lock (_LockObject) {
+            lock (_LockObject)
+            {
                 if (!_IsCompleted)
                 {
                     _Catchs!.Add(catcher);
@@ -432,59 +450,67 @@ namespace InfernoDispatcher
         #region Delay
         public InfernoTaskVoidPromiseNoArguments Delay(int millisecondsDelay, PromiseVoid promise)
         {
-            return Then(new PromiseVoid((resolve, reject) => {
-                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
+            return Then(new PromiseVoid((resolve, reject) =>
+            {
+                Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve());
             })).Then(promise);
         }
         public InfernoTaskPromiseNoArgument<TNextResult> Delay<TNextResult>(
             int millisecondsDelay,
             Promise<TNextResult> promise)
         {
-            return Then(new PromiseVoid((resolve, reject) => {
-                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
-            })).Then<TNextResult>(promise);
+            return Then(new PromiseVoid((resolve, reject) =>
+            {
+                Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve());
+            })).Then(promise);
         }
         public InfernoTaskNoResult Delay(int millisecondsDelay, Action callback)
         {
-            return Then(new PromiseVoid((resolve, reject) => {
-                Task.Delay((int)millisecondsDelay).ContinueWith((ignore)=>resolve());
+            return Then(new PromiseVoid((resolve, reject) =>
+            {
+                Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve());
             })).Then(callback);
         }
 
         public InfernoTaskNoResult Delay(int millisecondsDelay, InfernoTaskNoResult task)
         {
-            return Then(new PromiseVoid((resolve, reject) => {
-                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
+            return Then(new PromiseVoid((resolve, reject) =>
+            {
+                Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve());
             })).Then(task);
         }
 
         public InfernoTaskWithResult<TNextResult> Delay<TNextResult>(int millisecondsDelay, Func<TNextResult> callback)
         {
-            return Then(new PromiseVoid((resolve, reject) => {
-                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
+            return Then(new PromiseVoid((resolve, reject) =>
+            {
+                Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve());
             })).Then(callback);
         }
 
         public InfernoTaskWithResult<TNextResult> Delay<TNextResult>(int millisecondsDelay, InfernoTaskWithResult<TNextResult> task)
         {
-            return Then(new PromiseVoid((resolve, reject) => {
-                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
+            return Then(new PromiseVoid((resolve, reject) =>
+            {
+                Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve());
             })).Then(task);
         }
         public InfernoTaskPromiseReturnNoArgument<TNextResult> Delay<TNextResult>(
             int millisecondsDelay,
             Func<Promise<TNextResult>> promise)
         {
-            return Then(new PromiseVoid((resolve, reject) => {
-                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
+            return Then(new PromiseVoid((resolve, reject) =>
+            {
+                Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve());
             })).Then(promise);
         }
         public InfernoTaskVoidPromiseReturnNoArgument Delay<TNextResult>(
             int millisecondsDelay,
             Func<PromiseVoid> func)
         {
-            return Then(new PromiseVoid((resolve, reject) => {
-                Task.Delay((int)millisecondsDelay).ContinueWith((ignore) => resolve());
+            return Then(new PromiseVoid((resolve, reject) =>
+            {
+                Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve());
             })).Then(func);
         }
         #endregion
@@ -492,7 +518,7 @@ namespace InfernoDispatcher
         public void OnCompleted(Action continuation)
         {
             Then(continuation);
-            Catch((ex) =>continuation());
+            Catch((ex) => continuation());
         }
         #endregion
     }
