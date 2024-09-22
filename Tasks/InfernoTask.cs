@@ -234,7 +234,14 @@ namespace InfernoDispatcher.Tasks
             {
                 foreach (var thenWhatever in thenWhatevers)
                 {
-                    Dispatcher.Instance.Run(thenWhatever, null);
+                    try
+                    {
+                        Dispatcher.Instance.Run(thenWhatever, null);
+                    }
+                    catch(Exception ex2)
+                    {
+                        thenWhatever.Fail(ex2);
+                    }
                 }
             }
         }

@@ -8,7 +8,7 @@ namespace InfernoDispatcher.Tasks
         {
 
         }
-        protected void Success()
+        public void Success()
         {
             Success(null);
         }

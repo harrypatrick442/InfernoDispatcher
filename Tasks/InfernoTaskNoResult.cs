@@ -21,5 +21,10 @@
                 Fail(ex);
             }
         }
+        public static InfernoTaskNoResult NewSuccess() {
+            InfernoTaskNoResult task = new InfernoTaskNoResult(null);
+            task.Success();
+            return task;
+        }
     }
 }
