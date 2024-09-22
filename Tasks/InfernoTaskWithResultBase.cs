@@ -11,7 +11,7 @@ namespace InfernoDispatcher.Tasks
         {
 
         }
-        protected void Success(TThisResult result)
+        public void Success(TThisResult result)
         {
             Success(new object[] { result! });
         }
@@ -65,7 +65,7 @@ namespace InfernoDispatcher.Tasks
                     try
                     {
                         var childTask = callback(result);
-                        childTask.ThenExistingTask(toReturn!);
+                        childTask._ThenExistingTask(toReturn!);
                     }
                     catch (Exception ex)
                     {
@@ -108,11 +108,15 @@ namespace InfernoDispatcher.Tasks
                 otherResult = otherResultIn;
                 checkIfDoneAndRunIfIs();
             });
+            other.Catch(ex =>
+            taskToReturn.Fail(ex));
             Then((resultIn) =>
             {
                 thisResult = resultIn;
                 checkIfDoneAndRunIfIs();
             });
+            Catch(ex =>
+            taskToReturn.Fail(ex));
             return taskToReturn;
         }
         public InfernoTaskWithResultThreeArguments<TThisResult, TOtherResult1, TOtherResult2, TNextResult> Join<TOtherResult1, TOtherResult2, TNextResult>(
@@ -142,7 +146,7 @@ namespace InfernoDispatcher.Tasks
                         return;
                     }
                 }
-                Dispatcher.Instance.Run(taskToReturn, new object[] { });
+                Dispatcher.Instance.Run(taskToReturn, new object[] { thisResult!, otherResult1!, otherResult2! });
             };
 
             other1.Then((otherResultIn) =>
@@ -153,6 +157,8 @@ namespace InfernoDispatcher.Tasks
                 }
                 checkIfDoneAndRunIfIs();
             });
+            other1.Catch(ex =>
+            taskToReturn.Fail(ex));
 
             other2.Then((otherResultIn) =>
             {
@@ -162,6 +168,8 @@ namespace InfernoDispatcher.Tasks
                 }
                 checkIfDoneAndRunIfIs();
             });
+            other2.Catch(ex =>
+            taskToReturn.Fail(ex));
 
             Then((resultIn) =>
             {
@@ -171,6 +179,8 @@ namespace InfernoDispatcher.Tasks
                 }
                 checkIfDoneAndRunIfIs();
             });
+            Catch(ex =>
+            taskToReturn.Fail(ex));
 
             return taskToReturn;
         }
@@ -213,6 +223,8 @@ namespace InfernoDispatcher.Tasks
                 }
                 checkIfDoneAndRunIfIs();
             });
+            other1.Catch(ex =>
+            taskToReturn.Fail(ex));
 
             other2.Then((otherResultIn) =>
             {
@@ -222,6 +234,8 @@ namespace InfernoDispatcher.Tasks
                 }
                 checkIfDoneAndRunIfIs();
             });
+            other2.Catch(ex =>
+            taskToReturn.Fail(ex));
 
             other3.Then((otherResultIn) =>
             {
@@ -231,6 +245,8 @@ namespace InfernoDispatcher.Tasks
                 }
                 checkIfDoneAndRunIfIs();
             });
+            other3.Catch(ex =>
+            taskToReturn.Fail(ex));
 
             Then((resultIn) =>
             {
@@ -240,6 +256,8 @@ namespace InfernoDispatcher.Tasks
                 }
                 checkIfDoneAndRunIfIs();
             });
+            Catch(ex =>
+            taskToReturn.Fail(ex));
 
             return taskToReturn;
         }

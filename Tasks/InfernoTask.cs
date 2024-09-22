@@ -21,7 +21,8 @@ namespace InfernoDispatcher.Tasks
         internal object[]? Arguments { get; set; }
         protected readonly object _LockObject = new object();
         protected List<InfernoTask>? _Thens;
-        protected List<InfernoTaskNoResult>? _Catchs;
+        protected List<InfernoTask>? _Catchs;
+        protected List<InfernoTask>? _ThenWhatevers;
         protected bool _IsCompleted = false;
         public bool IsCompleted
         {
@@ -70,6 +71,7 @@ namespace InfernoDispatcher.Tasks
         protected void Cancel(InfernoTask? doingCancelIfNotNullConsiderOtherDependencies)
         {
             List<InfernoTask>? thens;
+            List<InfernoTask>? thenWhatevers;
             InfernoTask[] froms;
             lock (_LockObject)
             {
@@ -91,11 +93,23 @@ namespace InfernoDispatcher.Tasks
                 _Thens = null;
                 froms = _Froms;
                 _Froms = null;
+                thenWhatevers = _ThenWhatevers;
+                _ThenWhatevers = null;
                 _CountdownLatchWait?.Signal();
             }
-            foreach (InfernoTask from in froms)
+            if (thenWhatevers != null)
             {
-                from.Cancel(this);
+                foreach (InfernoTask thenWhatever in thenWhatevers)
+                {
+                    Dispatcher.Instance.Run(thenWhatever, null);
+                }
+            }
+            if (froms != null)
+            {
+                foreach (InfernoTask from in froms)
+                {
+                    from.Cancel(this);
+                }
             }
             if (thens != null)
             {
@@ -147,7 +161,8 @@ namespace InfernoDispatcher.Tasks
         internal void Success(object[]? result)
         {
             List<InfernoTask>? thens;
-            List<InfernoTaskNoResult>? catchs;
+            List<InfernoTask>? catchs;
+            List<InfernoTask>? thenWhatevers;
             lock (_LockObject)
             {
                 if (_IsCompleted) return;
@@ -157,27 +172,37 @@ namespace InfernoDispatcher.Tasks
                 _Thens = null;
                 catchs = _Catchs;
                 _Catchs = null;
+                thenWhatevers = _ThenWhatevers;
+                _ThenWhatevers = null;
                 _CountdownLatchWait?.Signal();
+            }
+            if (thenWhatevers != null)
+            {
+                foreach (var thenWhatever in thenWhatevers)
+                {
+                    Dispatcher.Instance.Run(thenWhatever, null);
+                }
             }
             if (thens != null)
             {
-                foreach (InfernoTask then in thens)
+                foreach (var then in thens)
                 {
                     Dispatcher.Instance.Run(then, result);
                 }
             }
             if (catchs != null)
             {
-                foreach (InfernoTaskNoResult catcher in catchs)
+                foreach (var catcher in catchs)
                 {
                     catcher.CompleteCatcherWithoutException(result);
                 }
             }
         }
-        internal void Fail(Exception ex)
+        public void Fail(Exception ex)
         {
             List<InfernoTask>? thens;
-            List<InfernoTaskNoResult>? catches;
+            List<InfernoTask>? catches;
+            List<InfernoTask>? thenWhatevers;
             lock (_LockObject)
             {
                 if (_IsCompleted) return;
@@ -187,18 +212,29 @@ namespace InfernoDispatcher.Tasks
                 _Thens = null;
                 catches = _Catchs;
                 _Catchs = null;
+                thenWhatevers = _ThenWhatevers;
+                _ThenWhatevers = null;
                 _CountdownLatchWait?.Signal();
             }
-            if (thens == null) return;
-            foreach (InfernoTask then in thens)
+            if (thens != null)
             {
-                then.Fail(ex);
+                foreach (InfernoTask then in thens)
+                {
+                    then.Fail(ex);
+                }
             }
             if (catches != null)
             {
                 foreach (var catcher in catches)
                 {
                     catcher.Run(new object[] { ex });
+                }
+            }
+            if (thenWhatevers != null)
+            {
+                foreach (var thenWhatever in thenWhatevers)
+                {
+                    Dispatcher.Instance.Run(thenWhatever, null);
                 }
             }
         }
@@ -273,7 +309,12 @@ namespace InfernoDispatcher.Tasks
                 promise, this));
         }
         #endregion
-        internal InfernoTaskWithResultBase<TNextResult> ThenExistingTask<TNextResult>(
+        public InfernoTaskWithResultBase<TNextResult> ThenExistingTask<TNextResult>(
+            InactiveInfernoTaskWithResultArgument<TNextResult, TNextResult> task)
+        {
+            return _ThenExistingTask(task);
+        }
+        internal InfernoTaskWithResultBase<TNextResult> _ThenExistingTask<TNextResult>(
             InfernoTaskWithResultArgument<TNextResult, TNextResult> task)
         {
             // Chain the existing result-producing task after this one
@@ -353,23 +394,35 @@ namespace InfernoDispatcher.Tasks
                     Action callback,
                     params InfernoTaskNoResult[] others)
         {
-            // Lock object for thread-safe operation
+            InfernoTaskNoResult taskToReturn = new InfernoTaskNoResult(callback, new InfernoTask[] { this }.Concat(others).ToArray());
+            return _Join(taskToReturn, others);
+        }
+        public InfernoTaskWithResult<TResult> Join<TResult>(
+                    Func<TResult>callback,
+                    params InfernoTaskNoResult[] others)
+        {
+            var taskToReturn = new InfernoTaskWithResult<TResult>(callback, new InfernoTask[] { this }.Concat(others).ToArray());
+            return _Join(taskToReturn, others);
+        }
+        public InfernoTaskNoResult JoinNoResults(
+                    params InfernoTask[] others)
+        {
+            var taskToReturn = new InfernoTaskNoResult(() => { },
+                new InfernoTask[] { this }.Concat(others).ToArray());
+            return _Join(taskToReturn, others);
+        }
+        protected TTaskToReturn _Join<TTaskToReturn>(
+                    TTaskToReturn taskToReturn,
+                    params InfernoTask[] others) where TTaskToReturn:InfernoTask
+        {
             object lockObject = new object();
-            // Track how many tasks have completed
             int doneCount = 0;
-            // Total number of tasks to wait for (including 'this')
             int totalTasks = others.Length + 1;
-
-            // Create the new task that will run the callback after all others are done
-            InfernoTaskNoResult taskToReturn = new InfernoTaskNoResult(callback, this);
-
-            // Method to check if all tasks are done
             Action checkIfDoneAndRunIfIs = () =>
             {
                 lock (lockObject)
                 {
                     doneCount++;
-                    // If all tasks are done, run the final callback
                     if (doneCount == totalTasks)
                     {
                         Dispatcher.Instance.Run(taskToReturn, null);
@@ -380,12 +433,19 @@ namespace InfernoDispatcher.Tasks
             // Register completion handlers for all the other tasks
             foreach (var other in others)
             {
-                other.Then(checkIfDoneAndRunIfIs);
+                other.Then(() => {
+                    checkIfDoneAndRunIfIs();
+                });
+                other.Catch(ex=>
+                taskToReturn.Fail(ex));
             }
 
             // Also register the completion handler for 'this' task
-            Then(checkIfDoneAndRunIfIs);
-
+            Then(() => {
+                checkIfDoneAndRunIfIs();
+            });
+            Catch(ex =>
+            taskToReturn.Fail(ex));
             return taskToReturn;
         }
         #endregion
@@ -408,7 +468,14 @@ namespace InfernoDispatcher.Tasks
             {
                 if (!_IsCompleted)
                 {
-                    _Catchs!.Add(catcher);
+                    if (_Catchs == null)
+                    {
+                        _Catchs = new List<InfernoTask> { catcher };
+                    }
+                    else
+                    {
+                        _Catchs!.Add(catcher);
+                    }
                     return catcher;
                 }
                 exception = _Exception;
@@ -429,15 +496,57 @@ namespace InfernoDispatcher.Tasks
             return catcher;
         }
         #endregion
+        #region ThenEvenIfFail
+        /// <summary>
+        /// Creates a task with no relation which runs even if this task fails or succeeeds.
+        /// This is used by subsystems that schedule unrelated tasks in series
+        /// </summary>
+        /// <param name="callback"></param>
+        /// <returns></returns>
+        public InfernoTask ThenWhatever(Action callback)
+        {
+            return ThenWhatever(new InfernoTaskNoResult(callback));
+        }
+        public InfernoTask ThenWhatever(InfernoTask unrelated)
+        {
+            lock (_LockObject)
+            {
+                if (!_IsCompleted)
+                {
+                    if (_ThenWhatevers == null)
+                    {
+                        _ThenWhatevers = new List<InfernoTask> { unrelated };
+                    }
+                    else
+                    {
+                        _ThenWhatevers!.Add(unrelated);
+                    }
+                    return unrelated;
+                }
+            }
+            Dispatcher.Instance.Run(unrelated, null);
+            return unrelated;
+        }
+        #endregion
         internal void CompleteCatcherWithoutException(object[]? arguments)
         {
             List<InfernoTask>? thens;
+            List<InfernoTask>? thenWhatevers;
             lock (_LockObject)
             {
                 _IsCompleted = true;
                 thens = _Thens;
                 _Thens = null;
+                thenWhatevers = _ThenWhatevers;
+                _ThenWhatevers = null;
                 _CountdownLatchWait?.Signal();
+            }
+            if (thenWhatevers != null)
+            {
+                foreach (InfernoTask thenWhatever in thenWhatevers)
+                {
+                    Dispatcher.Instance.Run(thenWhatever, null);
+                }
             }
             if (thens != null)
             {

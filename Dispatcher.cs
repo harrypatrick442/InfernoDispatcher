@@ -33,6 +33,9 @@ namespace InfernoDispatcher
                 );
             return _Instance;
         }
+        public static void Dispose() {
+            _Instance = null;
+        }
         public static DispatcherBase Instance { 
             get {
                 if (_Instance == null) throw new NotInitializedException((nameof(Dispatcher)));
