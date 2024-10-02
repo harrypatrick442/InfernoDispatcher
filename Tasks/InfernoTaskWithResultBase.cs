@@ -16,14 +16,14 @@ namespace InfernoDispatcher.Tasks
             Success(new object[] { result! });
         }
         #region Then
-        public InfernoTaskNoResultWithArgument<TThisResult> Then(
+        public InfernoTaskNoResultBase Then(
             Action<TThisResult> callback)
         {
             return ExecuteOrScheduleTask(
                 new InfernoTaskNoResultWithArgument<TThisResult>(callback, this)
             );
         }
-        public InfernoTaskWithResultArgument<TThisResult, TNextResult> Then<TNextResult>(
+        public InfernoTaskWithResultBase<TNextResult> Then<TNextResult>(
             Func<TThisResult, TNextResult> callback)
         {
             return ExecuteOrScheduleTask(new InfernoTaskWithResultArgument<TThisResult, TNextResult>(
@@ -65,7 +65,20 @@ namespace InfernoDispatcher.Tasks
                     try
                     {
                         var childTask = callback(result);
-                        childTask._ThenExistingTask(toReturn!);
+                        toReturn!.AddFrom(childTask);
+                        childTask.ThenWhatever((doneState) => {
+                            if (doneState.Exception != null)
+                            {
+                                toReturn!.Fail(doneState.Exception);
+                                return;
+                            }
+                            if (doneState.Canceled)
+                            {
+                                toReturn!.Cancel();
+                                return;
+                            }
+                            toReturn!.Success((TNextResult)doneState.Result![0]);
+                        });
                     }
                     catch (Exception ex)
                     {
@@ -74,8 +87,80 @@ namespace InfernoDispatcher.Tasks
 
                 }, this
             );
-            toReturn = new InfernoTaskWithResultArgument<TNextResult, TNextResult>((r) => r!, task);
+            toReturn = new InfernoTaskWithResultArgument<TNextResult, TNextResult>(null, task);
             ExecuteOrScheduleTask(task);
+            task.Catch(toReturn.Fail);
+            return toReturn;
+        }
+        public InfernoTaskWithResultBase<(TThisResult, TNextResult)> ThenCreateTaskCombineResults<TNextResult>(
+            Func<TThisResult, InfernoTaskWithResultBase<TNextResult>> callback)
+        {
+            InfernoTaskWithResultArgument<TNextResult, (TThisResult, TNextResult)>? toReturn = null;
+            InfernoTaskNoResultWithArgument<TThisResult> task = new InfernoTaskNoResultWithArgument<TThisResult>(
+                (result) =>
+                {
+                    try
+                    {
+                        var childTask = callback(result);
+                        toReturn!.AddFrom(childTask);
+                        childTask.ThenWhatever((doneState) => {
+                            if (doneState.Exception != null)
+                            {
+                                toReturn!.Fail(doneState.Exception);
+                                return;
+                            }
+                            if (doneState.Canceled)
+                            {
+                                toReturn!.Cancel();
+                                return;
+                            }
+                            toReturn!.Success((result, (TNextResult)doneState.Result![0]));
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        toReturn!.Fail(ex);
+                    }
+
+                }, this
+            );
+            toReturn = new InfernoTaskWithResultArgument<TNextResult, (TThisResult, TNextResult)>(null, task);
+            ExecuteOrScheduleTask(task);
+            task.Catch(toReturn.Fail);
+            return toReturn;
+        }
+        public InfernoTask ThenCreateTaskNoResult(
+            Func<TThisResult, InfernoTask> callback)
+        {
+            InfernoTaskNoResultBase? toReturn = null;
+            InfernoTaskNoResultWithArgument<TThisResult> task = new InfernoTaskNoResultWithArgument<TThisResult>(
+                (result) =>
+                {
+                    try
+                    {
+                        var childTask = callback(result);
+                        childTask.ThenWhatever((doneState) => {
+                            if (doneState.Exception != null) {
+                                toReturn!.Fail(doneState.Exception);
+                                return;
+                            }
+                            if (doneState.Canceled) {
+                                toReturn!.Cancel();
+                                return;
+                            }
+                            toReturn!.Success();
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        toReturn!.Fail(ex);
+                    }
+
+                }, this
+            );
+            toReturn = new InfernoTaskNoResult(null, task);
+            ExecuteOrScheduleTask(task);
+            task.Catch(toReturn.Fail);
             return toReturn;
         }
         #endregion
@@ -115,8 +200,7 @@ namespace InfernoDispatcher.Tasks
                 thisResult = resultIn;
                 checkIfDoneAndRunIfIs();
             });
-            Catch(ex =>
-            taskToReturn.Fail(ex));
+            Catch(taskToReturn.Fail);
             return taskToReturn;
         }
         public InfernoTaskWithResultThreeArguments<TThisResult, TOtherResult1, TOtherResult2, TNextResult> Join<TOtherResult1, TOtherResult2, TNextResult>(
@@ -184,7 +268,7 @@ namespace InfernoDispatcher.Tasks
 
             return taskToReturn;
         }
-        public InfernoTaskWithResultFourArguments<TThisResult, TOtherResult1, TOtherResult2, TOtherResult3, TNextResult>
+        public InfernoTaskWithResultBase<TNextResult>
             Join<TOtherResult1, TOtherResult2, TOtherResult3, TNextResult>(
     InfernoTaskWithResultBase<TOtherResult1> other1,
     InfernoTaskWithResultBase<TOtherResult2> other2,
@@ -266,7 +350,7 @@ namespace InfernoDispatcher.Tasks
         #endregion
         #region Delay
 
-        public InfernoTaskNoResultWithArgument<TThisResult> Delay(
+        public InfernoTask Delay(
             int millisecondsDelay,
             Action<TThisResult> callback)
         {
@@ -275,7 +359,7 @@ namespace InfernoDispatcher.Tasks
                 Task.Delay(millisecondsDelay).ContinueWith((ignore) => resolve(a));
             })).Then(callback);
         }
-        public InfernoTaskWithResultArgument<TThisResult, TNextResult> Delay<TNextResult>(
+        public InfernoTaskWithResultBase<TNextResult> Delay<TNextResult>(
             int millisecondsDelay,
             Func<TThisResult, TNextResult> callback)
         {
@@ -312,7 +396,7 @@ namespace InfernoDispatcher.Tasks
         }
         #endregion
         #region Wait
-        public TThisResult? Wait()
+        public TThisResult Wait()
         {
             lock (_LockObject)
             {
@@ -366,6 +450,10 @@ namespace InfernoDispatcher.Tasks
                 }
                 return (TThisResult)_Result![0];
             }
+        }
+        public InfernoTaskWithResultBase<TThisResult> GetAwaiter()
+        {
+            return this;
         }
         #endregion
     }

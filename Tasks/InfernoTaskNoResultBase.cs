@@ -12,42 +12,6 @@ namespace InfernoDispatcher.Tasks
         {
             Success(null);
         }
-        public void Wait()
-        {
-            lock (_LockObject)
-            {
-                if (_IsCompleted)
-                {
-                    if (_Cancelled)
-                    {
-                        throw new OperationCanceledException();
-                    }
-                    if (_Exception != null)
-                    {
-                        ThrowException();
-                        return;
-                    }
-                    return;
-                }
-                if (_CountdownLatchWait == null)
-                {
-                    _CountdownLatchWait = new CountdownLatch();
-                }
-            }
-            _CountdownLatchWait.Wait();
-            lock (_LockObject)
-            {
-                if (_Cancelled)
-                {
-                    throw new OperationCanceledException();
-                }
-                if (_Exception != null)
-                {
-                    ThrowException();
-                    return;
-                }
-            }
-        }
         #region Awaitable methods
         public virtual void GetResult()
         {
@@ -63,6 +27,10 @@ namespace InfernoDispatcher.Tasks
                     return;
                 }
             }
+        }
+        public InfernoTaskNoResultBase GetAwaiter()
+        {
+            return this;
         }
         #endregion
     }

@@ -1,4 +1,5 @@
 ﻿using InfernoDispatcher.Tasks;
+using System.Diagnostics;
 
 namespace InfernoDispatcher.Dispatchers
 {
@@ -19,6 +20,9 @@ namespace InfernoDispatcher.Dispatchers
         }
         public override void Run(InfernoTask task, object[]? arguments)
         {
+            if (task.GetType().Name.Contains("Four")) { 
+                
+            }
             ThreadPool.QueueUserWorkItem(_ =>
             {
                 try
