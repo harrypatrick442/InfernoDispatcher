@@ -42,7 +42,7 @@ namespace InfernoDispatcher.Locking
             _Enter(run, nResource);
             return toReturn;
         }
-        public InfernoTaskWithResultBase<TResult> Enter<TResult>(
+        public InfernoTaskWithResultBase<TResult> EnterCreateTask<TResult>(
             long nResource, Func<InfernoTaskWithResultBase<TResult>> createTask)
         {
             var toReturn = new InactiveInfernoTaskWithResult<TResult>(null);
@@ -100,6 +100,11 @@ namespace InfernoDispatcher.Locking
             try
             {
                 var task = createTask();
+                if (task == null) {
+                    toReturn.Success(new object[] { null });
+                    OnTaskCompleted(nResource);
+                    return;
+                }
                 toReturn.AddFrom(task);
                 task.ThenWhatever(doneState =>
                 {
